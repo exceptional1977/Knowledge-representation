@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}База знаний OCPA{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="top">
+  <div class="brand">База знаний модуля процессной аналитики <span class="muted">OCEL 2.0 · XGBoost / GNN</span></div>
+  <nav>
+    <a href="{{ url_for('semantic') }}" class="{{ 'on' if request.path.startswith('/semantic') }}">Семантическая сеть</a>
+    <a href="{{ url_for('frames') }}" class="{{ 'on' if request.path.startswith('/frames') }}">Фреймы</a>
+    <a href="{{ url_for('scenarios') }}" class="{{ 'on' if request.path.startswith('/scenarios') }}">Сценарии</a>
+    <a href="{{ url_for('rules') }}" class="{{ 'on' if request.path.startswith('/rules') }}">Правила и вывод</a>
+    <a href="{{ url_for('mapping') }}" class="{{ 'on' if request.path.startswith('/mapping') }}">Соответствие моделей</a>
+    <a href="{{ url_for('journal') }}" class="{{ 'on' if request.path.startswith('/journal') }}">Журнал</a>
+  </nav>
+  <div class="tools">
+    <form method="post" action="{{ url_for('set_author') }}" class="inline">
+      <label>Автор <input name="author" value="{{ author }}" size="14"></label>
+    </form>
+    <form method="post" action="{{ url_for('reset') }}" class="inline"
+          onsubmit="return confirm('Вернуть базу знаний к исходному состоянию?')">
+      <button class="ghost">Исходная база</button>
+    </form>
+  </div>
+</header>
+<div class="layout">
+  <main>{% block content %}{% endblock %}</main>
+  <aside class="changes" id="changes">
+    <h3>Что изменилось</h3>
+    {% if report %}
+      <div class="raction {{ 'bad' if report.ok == False else ('ask' if report.ok is none else 'good') }}">
+        {{ report.action }}
+        {% if report.ok == False %}<b> — отклонено</b>{% elif report.ok is none %}<b> — нужен выбор</b>{% endif %}
+      </div>
+      {% for title, items in report.steps.items() if items %}
+        <div class="rstep"><div class="rtitle">{{ title }}</div>
+          <ul>{% for x in items %}<li class="{{ 'plus' if x.startswith('+') else ('minus' if x.startswith('−') else ('err' if 'ОТКАЗ' in x or 'НАРУШЕНИЕ' in x or 'НЕ сохранено' in x else '')) }}">{{ x }}</li>{% endfor %}</ul>
+        </div>
+      {% endfor %}
+      {% if report.suggest %}
+        <form method="post" action="{{ url_for('sem_create_frame') }}" class="suggest">
+          <input type="hidden" name="vertex" value="{{ report.suggest.vertex }}">
+          <input type="hidden" name="parent" value="{{ report.suggest.parent }}">
+          <button>Создать фрейм «{{ report.suggest.label }}» AKO «{{ report.suggest.parent_label }}»</button>
+        </form>
+      {% endif %}
+      {% if report.choices %}
+        <div class="suggest">
+          <form method="post" action="{{ url_for('fr_delete') }}" class="inline">
+            <input type="hidden" name="node" value="{{ report.choices.node }}"><input type="hidden" name="mode" value="refuse">
+            <button class="ghost">Отменить удаление</button></form>
+          <form method="post" action="{{ url_for('fr_delete') }}" class="inline">
+            <input type="hidden" name="node" value="{{ report.choices.node }}"><input type="hidden" name="mode" value="cascade">
+            <button class="danger">Удалить с зависимыми ({{ report.choices.refs }} ссылок)</button></form>
+        </div>
+      {% endif %}
+      {% if report.n_added or report.n_removed %}
+      <details><summary>Триплеты: +{{ report.n_added }} / −{{ report.n_removed }}</summary>
+        <ul class="triples">
+          {% for t in report.added %}<li class="plus">+ {{ t }}</li>{% endfor %}
+          {% for t in report.removed %}<li class="minus">− {{ t }}</li>{% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    {% else %}
+      <p class="muted">Здесь появится отчёт о перестроении после любого изменения базы знаний:
+      проверка (словарь отношений, SHACL), сеть, фреймы и ризонер, демоны, повторный вывод,
+      сценарий, сохранение.</p>
+    {% endif %}
+  </aside>
+</div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Правила и вывод{% endblock %}
+{% macro tree(n) %}
+  <li class="{{ n.kind }}"><b>{{ n.text }}</b> — <span class="{{ 'muted' if n.kind=='fact' }}">{{ n.source }}</span>
+   {% if n.binding %}<span class="muted small"> {{ n.binding }}</span>{% endif %}
+   {% if n.children %}<ul>{% for c in n.children %}{{ tree(c) }}{% endfor %}</ul>{% endif %}</li>
+{% endmacro %}
+{% block content %}
+<h2>Правила и вывод <span class="muted">— продукции &lt;i, Q, P, A→B, N&gt;, ядро на SPARQL Update</span></h2>
+<p class="small"><b>Стратегия разрешения конфликта:</b> {{ strategy }}</p>
+
+<div class="grid2">
+<section class="card">
+  <h3>База продукций ({{ rules|length }})</h3>
+  <table class="t small"><tr><th>i</th><th>Q (сфера)</th><th>Приоритет</th><th>Источник</th><th>A → B</th></tr>
+  {% for r in rules %}<tr class="{{ 'sel' if rule and rule.name==r.name }}"><td><a href="?rule={{ r.name }}">{{ r.name }}</a></td>
+    <td>{{ lbl(r.scope) }}</td><td>{{ r.priority }}</td><td>{{ lbl(r.source) }}</td><td>{{ r.cond }} → {{ r.concl }}</td></tr>{% endfor %}
+  </table>
+</section>
+<section class="card">
+  {% if rule %}
+  <h3>Правило {{ rule.name }}</h3>
+  <table class="t"><tr><th>i</th><td>{{ rule.name }}</td></tr><tr><th>Q</th><td>{{ lbl(rule.scope) }}</td></tr>
+    <tr><th>P</th><td>{{ rule.pre }}</td></tr><tr><th>A → B</th><td>{{ rule.cond }} → {{ rule.concl }}</td></tr>
+    <tr><th>N</th><td>{{ rule.post }}</td></tr><tr><th>Приоритет</th><td>{{ rule.priority }} (специфичность {{ rule.specificity }})</td></tr>
+    <tr><th>Источник</th><td><a href="{{ url_for('semantic', node=qn(rule.source)) }}">{{ lbl(rule.source) }}</a></td></tr></table>
+  <pre class="code">{{ rule.core }}</pre>
+  {% else %}<p class="muted">Выберите правило в таблице или на графе зависимостей.</p>{% endif %}
+  <h4>Граф зависимостей правил <span class="muted">(зелёные — сработали в последнем выводе)</span></h4>
+  <div class="svgwrap small-graph">{{ svg|safe }}</div>
+</section>
+</div>
+
+<div class="grid2">
+<section class="card">
+  <h3>Прямой вывод</h3>
+  <form method="post" action="{{ url_for('r_forward') }}" class="inline"><button>Запустить прямой вывод</button></form>
+  <a href="{{ url_for('r_trace') }}">выгрузить трассу в файл</a>
+  {% if fwd %}<p>{{ fwd.label }}: <b>{{ fwd.cycles }}</b> циклов, выведено <b>{{ fwd.n_derived }}</b> триплетов.</p>
+  <details><summary>Трасса циклов вывода</summary>
+  <table class="t small"><tr><th>Цикл</th><th>Конфликтный набор</th><th>Выбрано</th><th>Добавлено</th></tr>
+  {% for c in fwd.trace %}<tr><td>{{ c.cycle }}</td>
+    <td>{% for a in c.conflict %}{{ a.rule }}<sub>{{ a.priority }}</sub> {% endfor %}
+      {% for b in c.blocked %}<div class="err">✕ {{ b.rule }}: {{ b.why }}</div>{% endfor %}</td>
+    <td>{% if c.chosen %}<b>{{ c.chosen }}</b><div class="muted">{{ c.reason }}</div>{% endif %}</td>
+    <td>{% for t in c.added %}<div>{{ t }}</div>{% endfor %}<div class="muted">{{ c.post }}</div></td></tr>{% endfor %}
+  </table></details>
+  {% endif %}
+  <h4>Цепочки вывода (заключение одного правила — условие следующего)</h4>
+  <ul>{% for c in chains[:8] %}<li><b>{{ c.chain|join(' → ') }}</b> <span class="muted">⇒ {{ c.conclusion }}</span></li>{% endfor %}</ul>
+</section>
+
+<section class="card">
+  <h3>Рекомендации</h3>
+  {% for r in recs %}<div class="rec"><b>{{ r.to }}</b>: {{ r.action }}
+    <div class="muted small">для «{{ r.for }}», основание — правило {{ r.rule }}{% if r.notified %}, уведомление создано{% endif %}</div></div>{% endfor %}
+  <h3>Заключения <span class="muted">— «как получено?»</span></h3>
+  <table class="t small"><tr><th>Объект</th><th>Слот</th><th>Значение</th><th>Правило</th><th></th></tr>
+  {% for r in results %}{% if r.slot in ['Решение','Риск нарушения SLA','Принятый прогноз остатка, ч','Требуется переобучение','Качество журнала','Достаточность данных'] %}
+    <tr><td>{{ r.subject }}</td><td>{{ r.slot }}</td><td>{{ r.value }}</td><td>{{ r.rule }}</td>
+    <td><a href="?explain={{ r.t|urlencode }}#expl">как получено?</a></td></tr>{% endif %}{% endfor %}
+  </table>
+</section>
+</div>
+
+{% if expl %}
+<section class="card" id="expl"><h3>Как получено: {{ expl.text }}</h3>
+  <ul class="expl">{{ tree(expl) }}</ul></section>
+{% endif %}
+
+<div class="grid2">
+<section class="card" id="backward">
+  <h3>Обратный вывод (проверка гипотезы)</h3>
+  <form method="post" action="{{ url_for('r_backward') }}">
+    <label>Объект <select name="case">{% for c in cases %}<option value="{{ c.id }}">{{ c.label }}</option>{% endfor %}</select></label>
+    <label>или новый кейс (данные спросит система) <input name="new_case" placeholder="Application_2001" size="16"></label>
+    <label>Слот <select name="slot"><option value="ex:riskLevel">Риск нарушения SLA</option><option value="ex:decision">Решение</option>
+      <option value="ex:dataStatus">Достаточность данных</option></select></label>
+    <label>Значение <select name="value">{% for s in statuses %}<option value="{{ s.id }}" {% if s.id=='ex:HighRisk' %}selected{% endif %}>{{ s.label }}</option>{% endfor %}</select></label>
+    <button>Проверить гипотезу</button>
+  </form>
+  {% if bw and bw.result %}
+    <p>Гипотеза «{{ bw.result.goal }}»: <b class="{{ 'good' if bw.result.status=='доказана' else ('err' if bw.result.status=='не доказана' else '') }}">{{ bw.result.status }}</b></p>
+    {% if bw.result.answers %}<p class="small">Ответы пользователя: {{ bw.result.answers|join('; ') }}</p>{% endif %}
+    {% if bw.result.question %}
+      <div class="ask"><b>Вопрос:</b> чему равен слот «{{ bw.result.question.slot_label }}» у «{{ bw.result.question.subject_label }}»? ({{ bw.result.question.type }})
+      <form method="post" action="{{ url_for('r_bw_answer') }}" class="inline">
+        <input type="hidden" name="subject" value="{{ bw.result.question.subject }}"><input type="hidden" name="slot" value="{{ bw.result.question.slot }}">
+        <input name="value" size="8" required><button>Ответить</button></form>
+      <details open><summary>Зачем спрашиваю?</summary><ul class="small">{% for w in bw.result.question.why|reverse %}<li>нужно для цели {{ w }}</li>{% endfor %}</ul></details></div>
+    {% endif %}
+    <details open><summary>Протокол: цели и подцели ({{ bw.result.steps|length }})</summary>
+      <ul class="small">{% for s in bw.result.steps %}<li style="margin-left:{{ s.depth*14 }}px">{{ s.goal }} → <i>{{ s.result }}</i></li>{% endfor %}</ul></details>
+    {% if bw.result.explanation %}<details><summary>Объяснение</summary><pre class="small">{{ bw.result.explanation }}</pre></details>{% endif %}
+  {% endif %}
+</section>
+
+<section class="card">
+  <h3>Добавить или изменить правило</h3>
+  <form method="post" action="{{ url_for('r_add') }}">
+    <div class="row"><label>i <input name="name" size="5" value="{{ 'R%02d'|format(rules|length + 1) }}" required></label>
+    <label>Q <select name="scope"><option value=""></option>{% for s in scopes %}<option value="{{ s.id }}">{{ s.label }}</option>{% endfor %}</select></label>
+    <label>Приоритет <input name="priority" type="number" value="40" size="4"></label></div>
+    <label>Источник (норматив) <select name="source">{% for c in sources %}<option value="{{ c.id }}">{{ c.label }}</option>{% endfor %}</select></label>
+    <label>P <input name="pre" placeholder="условие применимости"></label>
+    <label>A (словами) <input name="cond" placeholder="ЕСЛИ …"></label>
+    <label>B (словами) <input name="concl" placeholder="ТО …"></label>
+    <label>N <select name="post"><option value=""></option>{% for p in posts %}<option>{{ p }}</option>{% endfor %}</select></label>
+    <textarea name="core" rows="7" class="code" required>INSERT { ?case ex:riskLevel ex:HighRisk }
+WHERE {
+  ?case ex:elapsedHours ?e ; ex:slaNorm ?n .
+  ?n ex:thresholdHours ?thr .
+  FILTER (?e > ?thr)
+}</textarea>
+    <button>Проверить и добавить</button>
+    <p class="muted small">Проверяются синтаксис SPARQL Update, объявленность свойств во фреймах, конфликты с правилами, пишущими те же слоты; затем вывод пересчитывается.</p>
+  </form>
+</section>
+</div>
+{% endblock %}

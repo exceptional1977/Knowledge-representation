@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Соответствие моделей{% endblock %}
+{% block content %}
+<h2>Соответствие моделей <span class="muted">— вершина сети ↔ фрейм ↔ правило ↔ сцена</span></h2>
+<section class="card {{ 'good' if not disc else '' }}">
+  <h3>Расхождения ({{ disc|length }})</h3>
+  {% if disc %}<ul class="err">{% for d in disc %}<li>{{ d }}</li>{% endfor %}</ul>{% else %}<p>Расхождений нет.</p>{% endif %}
+</section>
+<section class="card">
+  <table class="t small"><tr><th>Вершина сети</th><th>Группа</th><th>Фреймы-прототипы</th><th>Фреймы-экземпляры</th><th>Правила (источник)</th><th>Сценарии и сцены</th></tr>
+  {% for r in table %}<tr><td><a href="{{ url_for('semantic', node=r.id) }}">{{ r.vertex }}</a></td><td>{{ r.group }}</td>
+    <td>{{ r.classes }}</td><td>{{ r.instances }}</td><td>{{ r.rules }}</td><td>{{ r.scenes }}</td></tr>{% endfor %}
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Фреймы{% endblock %}
+{% macro node(n) %}
+  <li><a href="{{ url_for('frames', cls=n.id) }}" class="{{ 'sel' if cls==n.id }}">{{ n.label }}</a>
+   <span class="muted">{{ n.kind }}{% if n.n %} · {{ n.n }} экз.{% endif %}</span>
+   {% if n.children %}<ul>{% for c in n.children %}{{ node(c) }}{% endfor %}</ul>{% endif %}</li>
+{% endmacro %}
+{% block content %}
+<h2>Фреймовая модель <span class="muted">— взгляд проектировщика; хранится в графе RDF</span></h2>
+<p class="stats">Фреймов-прототипов: <b>{{ n_classes }}</b> · глубина иерархии AKO: <b>{{ depth }}</b>
+ · <a href="?shacl=1{% if cls %}&cls={{ cls }}{% endif %}">проверить всю базу формами SHACL</a></p>
+{% if shacl %}<div class="card {{ 'good' if shacl.conforms else 'bad' }}">SHACL: {{ 'нарушений нет' if shacl.conforms else shacl.results|length ~ ' нарушений' }}
+  <ul>{% for r in shacl.results %}<li>{{ r.focus }} · {{ r.path }} = {{ r.value }}: {{ r.constraint }}</li>{% endfor %}</ul></div>{% endif %}
+
+<div class="grid-fr">
+<section class="card tree">
+  <h3>Дерево классов (AKO)</h3>
+  <ul>{% for n in tree %}{{ node(n) }}{% endfor %}</ul>
+</section>
+
+<section class="card">
+{% if ccard %}
+  <h3>Фрейм «{{ ccard.label|upper }}» <span class="muted">({{ ccard.kind }}) AKO {{ ccard.ako|upper }}</span></h3>
+  <p class="small">Цепочка AKO: {{ ccard.chain|join(' → ') }} · создан: {{ ccard.created }} · автор: {{ ccard.author }}
+   {% if ccard.sem %} · вершина сети: <a href="{{ url_for('semantic', node=ccard.sem.id) }}">{{ ccard.sem.label }}</a>{% else %} · <span class="err">нет вершины сети</span>{% endif %}</p>
+  <table class="t frame"><tr><th>Слот</th><th>Значение</th><th>Тип</th><th>Насл.</th><th>Способ получения</th><th>Демон</th></tr>
+    {% for r in ccard.rows %}<tr><td>{{ r.slot }}{% if r.declared_in != ccard.label %} <span class="muted">(слот «{{ r.declared_in }}»)</span>{% endif %}</td>
+      <td>{{ r.value }}{% if r.value_from %} <span class="muted">← {{ r.value_from }}</span>{% endif %}</td>
+      <td>{{ r.type }}</td><td>{{ r.ptr }}</td><td>{{ r.source }}</td><td class="small">{{ r.demon }}</td></tr>{% endfor %}
+  </table>
+  {% if ccard.shapes %}<details><summary>Ограничения SHACL ({{ ccard.shapes|length }})</summary>
+   <table class="t small"><tr><th>Слот</th><th>Ограничение</th><th>Форма</th></tr>
+   {% for s in ccard.shapes %}<tr><td>{{ s.path }}</td><td>{{ s.rule }}</td><td>{{ s.shape }} ({{ s.from }})</td></tr>{% endfor %}</table></details>{% endif %}
+  <h4>Экземпляры ({{ ccard.instances|length }})</h4>
+  <p>{% for i in ccard.instances %}<a class="pill {{ 'sel' if inst==i.id }}" href="{{ url_for('frames', cls=cls, inst=i.id) }}">{{ i.label }}</a>{% endfor %}</p>
+{% else %}
+  <p class="muted">Выберите класс в дереве или на графе сети фреймов.</p>
+{% endif %}
+</section>
+</div>
+
+{% if icard %}
+<section class="card">
+  <h3>Экземпляр «{{ icard.label }}» <span class="muted">{{ icard.id }} · класс {{ icard.class }} · граф {{ icard.graph }}</span></h3>
+  <p class="small">AKO: {{ icard.ako_chain|join(' → ') }}
+    {% if icard.reasoner %} · <b>ризонер owlrl:</b> также экземпляр {{ icard.reasoner|join(', ') }}{% endif %}
+    {% if icard.sem %} · вершина сети: <a href="{{ url_for('semantic', node=icard.sem.id) }}">{{ icard.sem.label }}</a> ({{ icard.sem.via }}){% endif %}</p>
+  <table class="t frame"><tr><th>Слот</th><th>Значение</th><th>Тип</th><th>Насл.</th><th>Откуда значение</th><th>Демон</th><th></th></tr>
+  {% for r in icard.rows %}
+    <tr class="{{ 'derived' if r.derived }} {{ 'violation' if r.violation }}"><td>{{ r.slot }}</td>
+      <td>{{ r.vals|join(', ') if r.vals else '—' }}{% if r.violation %}<div class="err small">{{ r.violation }}</div>{% endif %}</td>
+      <td>{{ r.type }}</td><td>{{ r.ptr }}</td>
+      <td class="small">{{ r.how }}{% if r.from %} <b>от «{{ r.from }}»</b>{% endif %}</td>
+      <td class="small">{{ r.demon }}</td>
+      <td>{% if not r.derived and icard.graph == 'data' %}
+        <form method="post" action="{{ url_for('fr_set_slot') }}" class="inline">
+          <input type="hidden" name="inst" value="{{ icard.id }}"><input type="hidden" name="cls" value="{{ cls }}">
+          <input type="hidden" name="slot" value="{{ r.id }}"><input name="value" size="8" placeholder="новое">
+          <button class="small">✎</button></form>{% endif %}
+        {% if r.empty and r.if_needed %}<form method="post" action="{{ url_for('fr_if_needed') }}" class="inline">
+          <input type="hidden" name="inst" value="{{ icard.id }}"><input type="hidden" name="cls" value="{{ cls }}">
+          <input type="hidden" name="slot" value="{{ r.id }}"><button class="small">вычислить</button></form>{% endif %}
+      </td></tr>
+  {% endfor %}
+  </table>
+  <form method="post" action="{{ url_for('fr_delete') }}" class="inline">
+    <input type="hidden" name="node" value="{{ icard.id }}"><input type="hidden" name="cls" value="{{ cls }}">
+    <input type="hidden" name="mode" value="check"><button class="danger">Удалить фрейм…</button></form>
+  <a href="{{ url_for('rules') }}" class="small">к выводу</a>
+</section>
+{% endif %}
+
+<div class="grid2">
+<section class="card">
+  <h3>Создать экземпляр {% if ccard %}класса «{{ ccard.label }}»{% endif %}</h3>
+  {% if ccard %}
+  <form method="post" action="{{ url_for('fr_add_instance') }}">
+    <input type="hidden" name="cls" value="{{ cls }}">
+    <label>Имя экземпляра <input name="label" required></label>
+    <table class="t small"><tr><th>Слот</th><th>Значение</th><th>Насл.</th><th>По умолчанию</th></tr>
+    {% for s in form_slots %}<tr><td>{{ s.label }}{% if s.required %} <b class="err">*</b>{% endif %}</td>
+      <td>{% if s.object and s.options %}<select name="slot__{{ s.id }}"><option value=""></option>
+            {% for o in s.options %}<option value="{{ o.id }}">{{ o.label }}</option>{% endfor %}</select>
+          {% else %}<input name="slot__{{ s.id }}" size="16" placeholder="{{ s.type }}" {% if s.ptr=='S' and s.default %}disabled title="S: наследуется"{% endif %}>{% endif %}</td>
+      <td>{{ s.ptr }}</td><td class="muted">{{ s.default }}{% if s.from %} ← {{ s.from }}{% endif %}</td></tr>{% endfor %}
+    </table>
+    <p class="muted small">* обязательный слот по форме SHACL (sh:minCount 1). Пустой слот с указателем S/O/R получит значение предка.</p>
+    <button>Создать (SHACL → демоны → вывод)</button>
+  </form>
+  {% else %}<p class="muted">Сначала выберите класс.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h3>Создать фрейм-прототип</h3>
+  <form method="post" action="{{ url_for('fr_add_class') }}">
+    <label>Имя <input name="label" required></label>
+    <label>AKO (родитель) <select name="parent">{% for c in classes %}<option value="{{ c.id }}" {% if cls==c.id %}selected{% endif %}>{{ c.label }}</option>{% endfor %}</select></label>
+    <label>Вставить в середину: переподчинить потомков<br>
+      <select name="children" multiple size="4">{% if ccard %}{% for c in classes %}{% if c.id != cls %}<option value="{{ c.id }}">{{ c.label }}</option>{% endif %}{% endfor %}{% endif %}</select></label>
+    <label>Вершина сети <select name="sem"><option value=""></option>{% for c in sem_concepts %}<option value="{{ c.id }}">{{ c.label }}</option>{% endfor %}</select></label>
+    <label>Значение по умолчанию: слот <input name="def_slot" placeholder="ex:inputRepresentation" size="18"> = <input name="def_value" size="14"></label>
+    <button>Создать (AKO → ризонер → SHACL → вывод)</button>
+  </form>
+</section>
+</div>
+
+<section class="card graphbox">
+  <h3>Сеть фреймов <span class="muted">— сплошные стрелки AKO (rdfs:subClassOf), пунктир — слоты-связи (owl:ObjectProperty)</span></h3>
+  <div class="svgwrap" data-zoom>{{ svg|safe }}</div>
+</section>
+
+<section class="card">
+  <h3>SPARQL к графу фреймов</h3>
+  <form method="get"><select name="tpl" onchange="this.form.submit()"><option value="">— шаблон —</option>
+    {% for name in templates %}<option {% if request.args.get('tpl')==name %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></form>
+  <form method="get"><textarea name="sparql" rows="6" class="code">{{ query_text }}</textarea>
+    <input type="hidden" name="run_query" value="1"><button>Выполнить</button></form>
+  {% if qres %}<table class="t"><tr>{% for h in qres[0] %}<th>?{{ h }}</th>{% endfor %}</tr>
+    {% for row in qres[1] %}<tr>{% for v in row %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</table>{% endif %}
+</section>
+{% endblock %}

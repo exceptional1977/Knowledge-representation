@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Сценарии{% endblock %}
+{% block content %}
+<h2>Сценарии <span class="muted">— исполнение фреймов-сценариев по шагам</span></h2>
+<div class="row">
+  <form method="get" class="inline"><select name="sc" onchange="this.form.submit()">
+    {% for s in sc_list %}<option value="{{ s.id }}" {% if s.id==sc %}selected{% endif %}>{{ s.label }}</option>{% endfor %}</select></form>
+  <form method="post" action="{{ url_for('sc_start') }}" class="inline">
+    <input type="hidden" name="sc" value="{{ sc }}"><button>Запустить</button>
+    <span class="muted">(кейс система спросит в сцене 1)</span></form>
+  {% if run %}
+  <form method="post" action="{{ url_for('sc_step') }}" class="inline"><input type="hidden" name="sc" value="{{ sc }}">
+    <input type="hidden" name="run" value="{{ run }}"><button {% if question or state.status=='завершён' %}disabled{% endif %}>Шаг</button></form>
+  <form method="post" action="{{ url_for('sc_run_all') }}" class="inline"><input type="hidden" name="sc" value="{{ sc }}">
+    <input type="hidden" name="run" value="{{ run }}"><button {% if question or state.status=='завершён' %}disabled{% endif %}>До конца</button></form>
+  <form method="post" action="{{ url_for('sc_reset') }}" class="inline"><input type="hidden" name="sc" value="{{ sc }}">
+    <input type="hidden" name="run" value="{{ run }}"><button class="ghost">Сбросить</button></form>
+  <a href="{{ url_for('sc_export', run=run) }}">выгрузить журнал</a>
+  {% endif %}
+  <form method="get" class="inline">Исполнения: <select name="run" onchange="this.form.submit()"><option value=""></option>
+    {% for r in runs %}<option value="{{ r.id }}" {% if r.id==run %}selected{% endif %}>{{ r.label }} [{{ r.status }}]</option>{% endfor %}</select>
+    <input type="hidden" name="sc" value="{{ sc }}"></form>
+</div>
+
+{% if question %}
+<section class="card ask">
+  <b>Вопрос (сцена «{{ question.scene }}»):</b> {{ question.text }}
+  <form method="post" action="{{ url_for('sc_answer') }}" class="inline">
+    <input type="hidden" name="sc" value="{{ sc }}"><input type="hidden" name="run" value="{{ run }}">
+    <input type="hidden" name="slot" value="{{ question.slot }}">
+    <select name="value">{% for o in question.options %}<option value="{{ o.id }}">{{ o.label }}</option>{% endfor %}</select>
+    <button>Ответить</button></form>
+</section>
+{% endif %}
+
+<section class="card graphbox">
+  <div class="svgwrap">{{ svg|safe }}</div>
+  <div class="legend"><span><i style="background:#b7e4c7"></i>пройдена</span><span><i style="border:3px solid #f77f00"></i>текущая</span>
+   <span><i style="background:#ffe5e5;border:2px dashed #c1121f"></i>нетипичная сцена</span>
+   <span>— — невыбранная ветвь</span><span>━ пройденный переход</span><span>Q: правила сферы применения сцены</span></div>
+</section>
+
+<div class="grid2">
+<section class="card">
+  <h3>Журнал шагов</h3>
+  {% if steps %}
+  <table class="t small"><tr><th>№</th><th>Сцена</th><th>Заполненные слоты</th><th>Правила / демоны</th><th>Переход</th></tr>
+  {% for s in steps %}<tr><td>{{ s.n }}</td><td><b>{{ s.scene }}</b><div class="muted">{{ s.pre }}</div></td>
+    <td>{% for k, v in s.slots.items() %}<div>{{ k }} = <b>{{ v }}</b></div>{% endfor %}</td>
+    <td>{{ s.rules or '—' }}{% if s.demons %}<div class="muted">{{ s.demons }}</div>{% endif %}
+      {% if s.conflict %}<div class="err">{{ s.conflict }}</div>{% endif %}</td>
+    <td>→ {{ s.to }}{% if s.by_rule %}<div><b>по правилу {{ s.by_rule }}</b></div>{% else %}<div class="muted">слот «Следующая сцена»</div>{% endif %}</td></tr>{% endfor %}
+  </table>
+  {% else %}<p class="muted">Запустите сценарий.</p>{% endif %}
+</section>
+<section class="card">
+  <h3>Фрейм-экземпляр сценария {{ run or '' }}</h3>
+  {% if slots %}<table class="t small"><tr><th>Слот</th><th>Значение</th></tr>
+  {% for s in slots %}<tr><td>{{ s.slot }}</td><td>{{ s.value }}</td></tr>{% endfor %}</table>{% endif %}
+  <h3>Сцены (фреймы-ситуации)</h3>
+  <table class="t small"><tr><th>Сцена</th><th>Предусловие</th><th>Действие</th><th>Результат</th><th>Следующая / переходы</th></tr>
+  {% for s in scenes %}<tr class="{{ '' if s.typical else 'atyp' }}"><td><b>{{ s.label }}</b></td><td>{{ s.pre }}</td>
+    <td>{{ s.action }}<div class="muted">процедура: {{ s.proc }}</div></td><td>{{ s.result }}</td>
+    <td>{{ s.next_label }}{% for t in s.transitions %}<div>{{ t.rule }} → {{ t.to_label }}</div>{% endfor %}</td></tr>{% endfor %}</table>
+</section>
+</div>
+{% endblock %}

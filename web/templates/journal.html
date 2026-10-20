@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Журнал изменений{% endblock %}
+{% block content %}
+<h2>Журнал изменений базы знаний</h2>
+<section class="card"><table class="t small"><tr><th>№</th><th>Время</th><th>Действие</th><th>Сводка</th></tr>
+{% for e in entries %}<tr><td>{{ e.id }}</td><td>{{ e.at }}</td><td>{{ e.action }}</td><td class="muted">{{ e.summary }}</td></tr>{% endfor %}
+</table>
+<p class="muted">Журнал хранится в именованном графе journal (kb/current/journal.ttl) и в out/journal.jsonl.</p></section>
+{% endblock %}

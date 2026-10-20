@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Семантическая сеть{% endblock %}
+{% block content %}
+<h2>Семантическая сеть <span class="muted">— взгляд бизнес-аналитика</span></h2>
+<p class="stats">Понятий: <b>{{ stats.concepts }}</b> · связей: <b>{{ stats.edges }}</b> ·
+ типов отношений в сети: <b>{{ stats.relation_types }}</b> (в словаре {{ stats.dictionary_size }}) ·
+ глубина «является»: <b>{{ stats.isa_depth }}</b> · N-арные события: <b>{{ stats.nary|join(', ') }}</b></p>
+
+<div class="grid-sem">
+<section class="card graphbox">
+  <form method="get" class="filters">
+    <details {% if groups_on or rels_on %}open{% endif %}><summary>Фильтры: группы понятий и типы отношений</summary>
+    <div class="fcols">
+      <div>{% for g in groups %}
+        <label class="chip" style="border-color:{{ g.color }}"><input type="checkbox" name="g" value="{{ g.id }}"
+          {% if not groups_on or g.id in groups_on %}checked{% endif %}><i style="background:{{ g.color }}"></i>{{ g.label }}</label>
+      {% endfor %}</div>
+      <div>{% for r in rels %}
+        <label class="chip small"><input type="checkbox" name="r" value="{{ r.id }}" {% if rels_on and r.id in rels_on %}checked{% endif %}>{{ r.label }} <span class="muted">({{ r.group }})</span></label>
+      {% endfor %}</div>
+    </div>
+    <button>Применить</button> <a href="{{ url_for('semantic') }}">сбросить</a>
+    <span class="muted">Пример: только «Бизнес-процессы» и «предшествует» — останется последовательность работ.</span>
+    </details>
+  </form>
+  <div class="svgwrap" data-zoom>{{ svg|safe }}</div>
+  <div class="legend">{% for g in groups %}<span><i style="background:{{ g.color }}"></i>{{ g.label }}</span>{% endfor %}
+   <span class="muted">Щелчок по вершине — карточка; колесо мыши — масштаб; перетаскивание — сдвиг.</span></div>
+</section>
+
+<section class="card">
+  {% if card %}
+  <h3>{{ card.label }} <span class="muted">{{ card.id }} · {{ card.group }}</span></h3>
+  <p>{{ card.definition }}</p>
+  <table class="t"><tr><th>Свойство</th><th>Значение</th><th>Откуда</th></tr>
+    {% for n, v in card.own %}<tr><td>{{ n }}</td><td>{{ v }}</td><td>собственное</td></tr>{% endfor %}
+    {% for a in card.inherited %}<tr class="{{ 'over' if a.overridden }}"><td>{{ a.name }}</td><td>{{ a.value }}</td>
+      <td>унаследовано от «{{ a.from }}» (уровень {{ a.depth }}){% if a.overridden %} — перекрыто{% endif %}</td></tr>{% endfor %}
+    {% if not card.own and not card.inherited %}<tr><td colspan="3" class="muted">свойств нет</td></tr>{% endif %}
+  </table>
+  <h4>Связи</h4>
+  <ul class="links">
+    {% for l in card.out %}<li>→ <i>{{ l.rel }}</i> <a href="?node={{ l.to_id }}">{{ l.to }}</a></li>{% endfor %}
+    {% for l in card.in %}<li>← <i>{{ l.rel }}</i> <a href="?node={{ l.to_id }}">{{ l.to }}</a></li>{% endfor %}
+  </ul>
+  <h4>Связанные фреймы и правила</h4>
+  {% if card.frames %}<ul>{% for f in card.frames %}<li>{{ f.kind }}: <a href="{{ url_for('frames', cls=f.id) if f.kind=='класс' else url_for('frames', inst=f.id) }}">{{ f.label }}</a></li>{% endfor %}</ul>
+  {% else %}<p class="muted">Фрейма нет.</p>{% endif %}
+  {% if card.rules %}<p>Источник правил: {{ card.rules|join(', ') }}</p>{% endif %}
+  <form method="post" action="{{ url_for('sem_add_edge') }}" class="row">
+    <input type="hidden" name="s" value="{{ card.id }}">
+    <b>Новая связь:</b> {{ card.label }}
+    <select name="rel">{% for r in rels %}<option value="{{ r.id }}">{{ r.label }}</option>{% endfor %}</select>
+    <select name="o">{% for c in concepts %}<option value="{{ c.id }}">{{ c.label }}</option>{% endfor %}</select>
+    <button>Добавить</button>
+  </form>
+  {% else %}
+  <p class="muted">Выберите вершину на графе — здесь появится всё, что о ней известно: собственные и унаследованные по «является» свойства, связи, фреймы.</p>
+  {% endif %}
+</section>
+</div>
+
+<div class="grid3">
+<section class="card">
+  <h3>Добавить вершину</h3>
+  <form method="post" action="{{ url_for('sem_add_vertex') }}">
+    <label>Название <input name="label" required placeholder="Платёжный документ"></label>
+    <label>Группа <select name="group">{% for g in groups %}<option value="{{ g.id }}">{{ g.label }}</option>{% endfor %}</select></label>
+    <label>Определение <input name="definition"></label>
+    <label>Свойство <input name="attr_name" placeholder="имя" size="10"> = <input name="attr_value" placeholder="значение" size="12"></label>
+    {% for k in [1,2,3] %}
+    <div class="row small">Связь {{ k }}:
+      <select name="dir{{ k }}"><option value="out">новая →</option><option value="in">← новая</option></select>
+      <select name="rel{{ k }}"><option value=""></option>{% for r in rels %}<option value="{{ r.id }}">{{ r.label }}</option>{% endfor %}</select>
+      <select name="other{{ k }}"><option value=""></option>{% for c in concepts %}<option value="{{ c.id }}">{{ c.label }}</option>{% endfor %}</select>
+    </div>
+    {% endfor %}
+    <button>Добавить и проверить по словарю</button>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Поиск связи между понятиями</h3>
+  <form method="get">
+    <label>От <select name="from">{% for c in concepts %}<option value="{{ c.id }}" {% if request.args.get('from')==c.id %}selected{% endif %}>{{ c.label }}</option>{% endfor %}</select></label>
+    <label>До <select name="to">{% for c in concepts %}<option value="{{ c.id }}" {% if request.args.get('to')==c.id %}selected{% endif %}>{{ c.label }}</option>{% endfor %}</select></label>
+    <label><input type="radio" name="method" value="bfs" {% if request.args.get('method','bfs')=='bfs' %}checked{% endif %}> в ширину</label>
+    <label><input type="radio" name="method" value="dfs" {% if request.args.get('method')=='dfs' %}checked{% endif %}> в глубину</label>
+    {% for r in rels_on or [] %}<input type="hidden" name="r" value="{{ r }}">{% endfor %}
+    <button>Найти</button>
+  </form>
+  {% if search %}
+    <p><b>Поиск {{ search.method }}:</b> {{ 'путь найден' if search.found else 'путь не найден' }},
+      посещено вершин: <b>{{ search.visited }}</b></p>
+    <ol class="path">{% for e in search.path %}<li>{{ e.from }} —<i>{{ e.rel }}</i>→ {{ e.to }}</li>{% endfor %}</ol>
+    <details><summary>Порядок обхода ({{ search.order|length }})</summary><p class="small">{{ search.order|join(' → ') }}</p></details>
+    <table class="t small"><tr><th>Метод</th><th>Посещено</th><th>Длина пути</th></tr>
+      {% for c in search.compare %}<tr><td>{{ c.method }}</td><td>{{ c.visited }}</td><td>{{ c.len }}</td></tr>{% endfor %}</table>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h3>Проверка сети</h3>
+  <form method="get"><input type="hidden" name="check" value="1"><button>Проверить</button></form>
+  {% if check %}
+    {% if check.ok %}<p class="good">Ошибок нет: циклов «является», нарушений словаря, изолированных вершин и дубликатов не найдено.</p>{% endif %}
+    {% for k, title in [('cycles','Циклы в «является»'),('dictionary','Нарушения словаря отношений'),('isolated','Изолированные вершины'),('duplicates','Дубликаты')] %}
+      {% if check[k] %}<h4>{{ title }}</h4><ul class="err">{% for x in check[k] %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+    {% endfor %}
+  {% endif %}
+</section>
+</div>
+
+<section class="card">
+  <h3>Запрос по образцу (SPARQL)</h3>
+  <form method="get">
+    <select name="tpl" onchange="this.form.submit()"><option value="">— шаблон —</option>
+      {% for name in templates %}<option {% if request.args.get('tpl')==name %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+  </form>
+  <form method="get">
+    <textarea name="sparql" rows="6" class="code">{{ query_text }}</textarea>
+    <input type="hidden" name="run_query" value="1"><button>Выполнить</button>
+    <span class="muted">Префиксы sn:, ex:, rdfs: подставляются автоматически.</span>
+  </form>
+  {% if qres %}<table class="t"><tr>{% for h in qres[0] %}<th>?{{ h }}</th>{% endfor %}</tr>
+    {% for row in qres[1] %}<tr>{% for v in row %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</table>
+    <p class="muted">Подстановок: {{ qres[1]|length }}</p>{% endif %}
+</section>
+{% endblock %}
