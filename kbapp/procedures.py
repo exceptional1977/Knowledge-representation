@@ -147,7 +147,7 @@ def estimate_confidence(ctx, fc):
 @post_action("log_event")
 def log_event(ctx, b, rule):
     """Записать событие о срабатывании правила в журнал объекта (слот ex:logEntry)."""
-    subj = next((v for k, v in b.items() if k in ("case", "log", "m")), None)
+    subj = next((b[k] for k in ("case", "m", "log") if b.get(k) is not None), None)   # объект правила
     if subj is None:
         return "нет объекта для записи"
     ctx.add((subj, EX.logEntry, Literal(f"{rule.name}: {rule.concl}")), f"N({rule.name})")
