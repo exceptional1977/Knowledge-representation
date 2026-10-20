@@ -1,0 +1,4 @@
+__pycache__/
+kb/current/
+out/
+*.pyc

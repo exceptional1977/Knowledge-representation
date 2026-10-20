@@ -1,0 +1,5 @@
+rdflib>=7.0
+owlrl>=6.0
+pyshacl>=0.25
+flask>=3.0
+networkx>=3.0

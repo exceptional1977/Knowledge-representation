@@ -1,0 +1,453 @@
+# =====================================================================
+#  Именованный граф <http://bmstu.ru/iu12/ocpa/graph/semantic>
+#  Семантическая сеть — взгляд бизнес-аналитика на модуль
+#  объектно-центрированной процессной аналитики (OCPA).
+#  Здесь нет классов и полей хранения: только понятия предметной
+#  области (вершины sn:Concept) и смысловые отношения между ними.
+# =====================================================================
+@prefix sn:   <http://bmstu.ru/iu12/ocpa/sn#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# ---------------------------------------------------------------------
+# 1. Группы понятий (раздел 3 задания)
+# ---------------------------------------------------------------------
+sn:G_Role    a sn:Group ; rdfs:label "Роли и участники"@ru ;            sn:color "#e07a5f" ; sn:order 1 .
+sn:G_Goal    a sn:Group ; rdfs:label "Цели и показатели"@ru ;           sn:color "#f2cc8f" ; sn:order 2 .
+sn:G_Process a sn:Group ; rdfs:label "Бизнес-процессы и операции"@ru ;  sn:color "#81b29a" ; sn:order 3 .
+sn:G_Info    a sn:Group ; rdfs:label "Информационные объекты"@ru ;      sn:color "#8ecae6" ; sn:order 4 .
+sn:G_Phys    a sn:Group ; rdfs:label "Физические объекты"@ru ;          sn:color "#b8b8d1" ; sn:order 5 .
+sn:G_Rule    a sn:Group ; rdfs:label "Бизнес-правила и ограничения"@ru ; sn:color "#e5989b" ; sn:order 6 .
+sn:G_System  a sn:Group ; rdfs:label "Система, модули, внешние системы"@ru ; sn:color "#cdb4db" ; sn:order 7 .
+sn:AnyGroup  a sn:Group ; rdfs:label "любая группа"@ru ; sn:order 99 .
+
+# ---------------------------------------------------------------------
+# 2. Словарь отношений: имя, обратное имя, области определения/значений,
+#    транзитивность. Приложение проверяет по нему каждую новую связь.
+# ---------------------------------------------------------------------
+sn:isA a sn:Relation ; rdfs:label "является"@ru ; sn:inverseLabel "имеет вид"@ru ;
+    sn:relGroup "Родовидовые" ; sn:domainGroup sn:AnyGroup ; sn:rangeGroup sn:AnyGroup ;
+    sn:sameGroup true ; sn:transitive true ; sn:inheritsAttributes true .
+sn:instanceOf a sn:Relation ; rdfs:label "экземпляр класса"@ru ; sn:inverseLabel "имеет экземпляр"@ru ;
+    sn:relGroup "Родовидовые" ; sn:domainGroup sn:AnyGroup ; sn:rangeGroup sn:AnyGroup ;
+    sn:sameGroup true ; sn:transitive false ; sn:inheritsAttributes true .
+sn:hasProperty a sn:Relation ; rdfs:label "имеет свойство"@ru ; sn:inverseLabel "является свойством"@ru ;
+    sn:relGroup "Атрибутивные" ; sn:domainGroup sn:G_Info, sn:G_Process, sn:G_System, sn:G_Phys ;
+    sn:rangeGroup sn:G_Goal ; sn:transitive false .
+sn:partOf a sn:Relation ; rdfs:label "состоит из"@ru ; sn:inverseLabel "входит в"@ru ;
+    sn:relGroup "Часть – целое" ; sn:domainGroup sn:AnyGroup ; sn:rangeGroup sn:AnyGroup ;
+    sn:sameGroup true ; sn:transitive true .
+sn:performs a sn:Relation ; rdfs:label "выполняет"@ru ; sn:inverseLabel "выполняется"@ru ;
+    sn:relGroup "Функциональные" ; sn:domainGroup sn:G_Role ; sn:rangeGroup sn:G_Process ; sn:transitive false .
+sn:uses a sn:Relation ; rdfs:label "использует"@ru ; sn:inverseLabel "используется в"@ru ;
+    sn:relGroup "Функциональные" ; sn:domainGroup sn:G_Process, sn:G_System, sn:G_Role ;
+    sn:rangeGroup sn:G_Info, sn:G_System, sn:G_Phys ; sn:transitive false .
+sn:creates a sn:Relation ; rdfs:label "создаёт"@ru ; sn:inverseLabel "создаётся в"@ru ;
+    sn:relGroup "Функциональные" ; sn:domainGroup sn:G_Process, sn:G_System ;
+    sn:rangeGroup sn:G_Info ; sn:transitive false .
+sn:automates a sn:Relation ; rdfs:label "автоматизирует"@ru ; sn:inverseLabel "автоматизируется"@ru ;
+    sn:relGroup "Функциональные" ; sn:domainGroup sn:G_System ; sn:rangeGroup sn:G_Process ; sn:transitive false .
+sn:affects a sn:Relation ; rdfs:label "влияет на"@ru ; sn:inverseLabel "зависит от"@ru ;
+    sn:relGroup "Функциональные" ; sn:domainGroup sn:G_Info, sn:G_Process ;
+    sn:rangeGroup sn:G_Goal ; sn:transitive false .
+sn:aimsAt a sn:Relation ; rdfs:label "служит цели"@ru ; sn:inverseLabel "достигается через"@ru ;
+    sn:relGroup "Функциональные" ; sn:domainGroup sn:G_Process, sn:G_System ;
+    sn:rangeGroup sn:G_Goal ; sn:transitive false .
+sn:responsibleFor a sn:Relation ; rdfs:label "отвечает за"@ru ; sn:inverseLabel "в ответственности"@ru ;
+    sn:relGroup "Функциональные" ; sn:domainGroup sn:G_Role ; sn:rangeGroup sn:G_Goal ; sn:transitive false .
+sn:causes a sn:Relation ; rdfs:label "вызывает"@ru ; sn:inverseLabel "вызывается"@ru ;
+    sn:relGroup "Причинно-следственные" ; sn:domainGroup sn:G_Info, sn:G_Process ;
+    sn:rangeGroup sn:G_Info, sn:G_Process ; sn:transitive false .
+sn:conditionOf a sn:Relation ; rdfs:label "является условием"@ru ; sn:inverseLabel "требует условия"@ru ;
+    sn:relGroup "Причинно-следственные" ; sn:domainGroup sn:G_Rule, sn:G_Info ;
+    sn:rangeGroup sn:G_Process ; sn:transitive false .
+sn:precedes a sn:Relation ; rdfs:label "предшествует"@ru ; sn:inverseLabel "следует за"@ru ;
+    sn:relGroup "Временные" ; sn:domainGroup sn:G_Process ; sn:rangeGroup sn:G_Process ; sn:transitive true .
+sn:during a sn:Relation ; rdfs:label "выполняется во время"@ru ; sn:inverseLabel "включает во время"@ru ;
+    sn:relGroup "Временные" ; sn:domainGroup sn:G_Process ; sn:rangeGroup sn:G_Process ; sn:transitive false .
+sn:regulates a sn:Relation ; rdfs:label "регламентирует"@ru ; sn:inverseLabel "регламентируется"@ru ;
+    sn:relGroup "Нормативные" ; sn:domainGroup sn:G_Rule ; sn:rangeGroup sn:G_Process ; sn:transitive false .
+sn:restricts a sn:Relation ; rdfs:label "ограничивает"@ru ; sn:inverseLabel "ограничивается"@ru ;
+    sn:relGroup "Нормативные" ; sn:domainGroup sn:G_Rule ; sn:rangeGroup sn:G_Goal, sn:G_Info ; sn:transitive false .
+sn:locatedIn a sn:Relation ; rdfs:label "расположен в"@ru ; sn:inverseLabel "содержит"@ru ;
+    sn:relGroup "Пространственные и количественные" ; sn:domainGroup sn:G_Phys, sn:G_System ;
+    sn:rangeGroup sn:G_Phys ; sn:transitive true .
+sn:notGreater a sn:Relation ; rdfs:label "не больше"@ru ; sn:inverseLabel "не меньше"@ru ;
+    sn:relGroup "Пространственные и количественные" ; sn:domainGroup sn:G_Goal ;
+    sn:rangeGroup sn:G_Rule, sn:G_Goal ; sn:transitive true .
+# Падежные отношения для N-арной связи через вершину-событие
+sn:agent a sn:Relation ; rdfs:label "агент"@ru ; sn:inverseLabel "является агентом"@ru ;
+    sn:relGroup "Падежные (N-арные)" ; sn:domainGroup sn:G_Process ; sn:rangeGroup sn:G_Role ; sn:transitive false .
+sn:object a sn:Relation ; rdfs:label "объект действия"@ru ; sn:inverseLabel "подвергается"@ru ;
+    sn:relGroup "Падежные (N-арные)" ; sn:domainGroup sn:G_Process ; sn:rangeGroup sn:G_Info ; sn:transitive false .
+sn:instrument a sn:Relation ; rdfs:label "инструмент"@ru ; sn:inverseLabel "является инструментом"@ru ;
+    sn:relGroup "Падежные (N-арные)" ; sn:domainGroup sn:G_Process ; sn:rangeGroup sn:G_System ; sn:transitive false .
+sn:basis a sn:Relation ; rdfs:label "основание"@ru ; sn:inverseLabel "является основанием"@ru ;
+    sn:relGroup "Падежные (N-арные)" ; sn:domainGroup sn:G_Process ; sn:rangeGroup sn:G_Rule ; sn:transitive false .
+sn:result a sn:Relation ; rdfs:label "результат"@ru ; sn:inverseLabel "является результатом"@ru ;
+    sn:relGroup "Падежные (N-арные)" ; sn:domainGroup sn:G_Process ; sn:rangeGroup sn:G_Info ; sn:transitive false .
+sn:place a sn:Relation ; rdfs:label "место"@ru ; sn:inverseLabel "является местом"@ru ;
+    sn:relGroup "Падежные (N-арные)" ; sn:domainGroup sn:G_Process ; sn:rangeGroup sn:G_Phys ; sn:transitive false .
+
+# ---------------------------------------------------------------------
+# 3. Понятия. sn:attr — собственные свойства вершины (имя–значение);
+#    по связи «является» они наследуются потомками.
+# ---------------------------------------------------------------------
+
+# --- Роли и участники ---
+sn:Participant a sn:Concept ; sn:group sn:G_Role ; rdfs:label "Участник процесса"@ru ;
+    sn:definition "Человек или роль, работающие с модулем или зависящие от результата его работы" ;
+    sn:attr [ sn:attrName "Доступ к модулю" ; sn:attrValue "через веб-интерфейс по учётной записи" ] .
+sn:BusinessAnalyst a sn:Concept ; sn:group sn:G_Role ; rdfs:label "Бизнес-аналитик"@ru ;
+    sn:definition "Формулирует вопросы к процессу, следит за SLA, ищет узкие места и готовит управленческие предложения" ;
+    sn:attr [ sn:attrName "Уровень доступа" ; sn:attrValue "чтение прогнозов, запуск мониторинга" ] .
+sn:DataSpecialist a sn:Concept ; sn:group sn:G_Role ; rdfs:label "Специалист по данным"@ru ;
+    sn:definition "Обобщённая роль сотрудника, работающего с журналами событий и моделями" ;
+    sn:attr [ sn:attrName "Инструменты" ; sn:attrValue "Python, PM4Py, Jupyter" ] .
+sn:MLEngineer a sn:Concept ; sn:group sn:G_Role ; rdfs:label "ML-инженер"@ru ;
+    sn:definition "Обучает, сравнивает и переобучает модели прогнозирования KPI (XGBoost, GNN)" ;
+    sn:attr [ sn:attrName "Уровень доступа" ; sn:attrValue "обучение и выкладка моделей" ] .
+sn:DataEngineer a sn:Concept ; sn:group sn:G_Role ; rdfs:label "Инженер данных"@ru ;
+    sn:definition "Выгружает журналы из учётных систем, конвертирует XES в OCEL и отвечает за их качество" .
+sn:ProcessOwner a sn:Concept ; sn:group sn:G_Role ; rdfs:label "Владелец процесса"@ru ;
+    sn:definition "Руководитель, который отвечает за KPI процесса и принимает решения по эскалациям" ;
+    sn:attr [ sn:attrName "Канал уведомлений" ; sn:attrValue "электронная почта и корпоративный мессенджер" ] .
+sn:DomainExpert a sn:Concept ; sn:group sn:G_Role ; rdfs:label "Эксперт предметной области"@ru ;
+    sn:definition "Специалист по кредитному процессу, подтверждающий интерпретацию прогнозов и правил" .
+
+# --- Цели и показатели ---
+sn:GoalBottlenecks a sn:Concept ; sn:group sn:G_Goal ; rdfs:label "Выявление узких мест"@ru ;
+    sn:definition "Поиск операций и переходов, которые дают наибольший вклад в задержку экземпляров процесса" .
+sn:GoalSLARisk a sn:Concept ; sn:group sn:G_Goal ; rdfs:label "Снижение риска нарушения SLA"@ru ;
+    sn:definition "Своевременное обнаружение кейсов, которые с высокой вероятностью не уложатся в норматив" .
+sn:GoalInterpretability a sn:Concept ; sn:group sn:G_Goal ; rdfs:label "Интерпретируемость прогноза"@ru ;
+    sn:definition "Возможность показать, из каких фактов и правил получены прогноз и рекомендация" .
+sn:KPI a sn:Concept ; sn:group sn:G_Goal ; rdfs:label "Показатель эффективности (KPI)"@ru ;
+    sn:definition "Числовая мера результата процесса, по которой оценивается его эффективность" ;
+    sn:attr [ sn:attrName "Единица измерения" ; sn:attrValue "часы" ] ,
+            [ sn:attrName "Уровень расчёта" ; sn:attrValue "экземпляр процесса" ] .
+sn:CycleTime a sn:Concept ; sn:group sn:G_Goal ; rdfs:label "Время цикла"@ru ;
+    sn:definition "Длительность экземпляра процесса от первого до последнего события" ;
+    sn:attr [ sn:attrName "Формула" ; sn:attrValue "t_end − t_start" ] .
+sn:RemainingTime a sn:Concept ; sn:group sn:G_Goal ; rdfs:label "Остаточное время выполнения"@ru ;
+    sn:definition "Время, которое ещё потребуется незавершённому экземпляру до окончания" ;
+    sn:attr [ sn:attrName "Формула" ; sn:attrValue "t_end − t_текущее" ] .
+sn:ModelQuality a sn:Concept ; sn:group sn:G_Goal ; rdfs:label "Метрика качества модели"@ru ;
+    sn:definition "Ошибка прогноза модели на отложенной выборке" ;
+    sn:attr [ sn:attrName "Метрики" ; sn:attrValue "MAE, RMSE, R²" ] .
+
+# --- Бизнес-процессы и операции ---
+sn:PredictiveMonitoring a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Предиктивный мониторинг процесса"@ru ;
+    sn:definition "Сквозной процесс: от поступления событий до рекомендации по незавершённым кейсам" .
+sn:LogCollection a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Сбор журнала событий"@ru ;
+    sn:definition "Выгрузка записей о выполнении операций из учётных систем организации" .
+sn:XesToOcel a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Конвертация XES в OCEL"@ru ;
+    sn:definition "Перевод плоского журнала в объектно-центрированный с явными связями событие–объект" .
+sn:QualityCheck a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Проверка качества данных"@ru ;
+    sn:definition "Контроль пропусков, дубликатов, порядка временных меток и достаточности префикса" .
+sn:GraphBuilding a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Построение графа «событие–объект»"@ru ;
+    sn:definition "Формирование гетерогенного графа, вершины которого — события и объекты разных типов" .
+sn:FeatureExtraction a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Извлечение признаков"@ru ;
+    sn:definition "Расчёт временных, статистических и графовых признаков префикса кейса" .
+sn:ModelTraining a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Обучение модели"@ru ;
+    sn:definition "Настройка параметров модели прогнозирования по обучающей выборке" ;
+    sn:attr [ sn:attrName "Разбиение выборки" ; sn:attrValue "по времени, 80/20" ] .
+sn:XGBTraining a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Обучение XGBoost"@ru ;
+    sn:definition "Обучение базовой (baseline) модели градиентного бустинга на табличных признаках" .
+sn:GNNTraining a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Обучение GNN"@ru ;
+    sn:definition "Обучение графовой нейросети на гетерогенном графе событие–объект" ;
+    sn:attr [ sn:attrName "Вычислительный ресурс" ; sn:attrValue "GPU" ] .
+sn:Retraining a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Переобучение модели"@ru ;
+    sn:definition "Повторное обучение модели при обнаружении дрейфа данных" .
+sn:KPIForecasting a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Прогнозирование KPI"@ru ;
+    sn:definition "Получение оценки остаточного времени кейса по его текущему префиксу" .
+sn:SLAMonitoring a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Мониторинг SLA"@ru ;
+    sn:definition "Регулярное сравнение прогнозного времени цикла кейсов с нормативом" .
+sn:SLAEscalation a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Эскалация риска SLA"@ru ;
+    sn:definition "Событие передачи владельцу процесса кейса с высоким риском нарушения норматива" .
+sn:RecommendationMaking a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Формирование рекомендации"@ru ;
+    sn:definition "Подготовка предложения: что сделать, кому и на каком основании" .
+sn:BottleneckAnalysis a sn:Concept ; sn:group sn:G_Process ; rdfs:label "Анализ узких мест"@ru ;
+    sn:definition "Сопоставление времени ожидания по операциям и выделение тех, что задерживают кейсы" .
+
+# --- Информационные объекты ---
+sn:InformationObject a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Информационный объект"@ru ;
+    sn:definition "Данные, документы и сообщения, которые создаются и используются в процессах модуля" ;
+    sn:attr [ sn:attrName "Хранится в" ; sn:attrValue "хранилище OCEL / сетевом хранилище" ] ,
+            [ sn:attrName "Срок хранения" ; sn:attrValue "3 года" ] .
+sn:EventLog a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Журнал событий"@ru ;
+    sn:definition "Набор записей о фактическом выполнении операций процесса" ;
+    sn:attr [ sn:attrName "Обязательные атрибуты события" ; sn:attrValue "идентификатор, активность, временная метка" ] .
+sn:XESLog a sn:Concept ; sn:group sn:G_Info ; rdfs:label "XES-журнал"@ru ;
+    sn:definition "Плоский журнал, в котором каждое событие отнесено к одному идентификатору кейса" ;
+    sn:attr [ sn:attrName "Формат" ; sn:attrValue "XES (IEEE 1849-2016)" ] .
+sn:OCELLog a sn:Concept ; sn:group sn:G_Info ; rdfs:label "OCEL-журнал"@ru ;
+    sn:definition "Журнал, в котором событие связано с несколькими объектами разных типов" ;
+    sn:attr [ sn:attrName "Формат" ; sn:attrValue "OCEL 2.0 (JSON, XML, SQLite)" ] ,
+            [ sn:attrName "Типы связей" ; sn:attrValue "событие–объект (E2O), объект–объект (O2O)" ] .
+sn:Event a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Событие"@ru ;
+    sn:definition "Запись о выполненной операции с временной меткой и атрибутами" .
+sn:BusinessObject a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Бизнес-объект"@ru ;
+    sn:definition "Сущность, участвующая в событиях: заявка, предложение, ресурс" .
+sn:Application a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Заявка на кредит"@ru ;
+    sn:definition "Бизнес-объект кредитного процесса, вокруг которого строится экземпляр процесса" ;
+    sn:attr [ sn:attrName "Норматив обработки" ; sn:attrValue "720 ч" ] .
+sn:ProcessCase a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Экземпляр процесса"@ru ;
+    sn:definition "Конкретное выполнение процесса для одной заявки — последовательность её событий" .
+sn:TracePrefix a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Префикс трассы"@ru ;
+    sn:definition "Уже выполненная начальная часть трассы незавершённого кейса" .
+sn:EOGraph a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Граф «событие–объект»"@ru ;
+    sn:definition "Гетерогенный граф связей событий и объектов, вход графовой нейросети" .
+sn:FeatureVector a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Вектор признаков"@ru ;
+    sn:definition "Упорядоченный набор числовых характеристик префикса" .
+sn:PredictiveModel a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Прогнозная модель"@ru ;
+    sn:definition "Обученная модель, оценивающая KPI незавершённого кейса" ;
+    sn:attr [ sn:attrName "Вход" ; sn:attrValue "вектор признаков префикса" ] ,
+            [ sn:attrName "Метрики качества" ; sn:attrValue "MAE, RMSE, R²" ] .
+sn:XGBModel a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Модель XGBoost"@ru ;
+    sn:definition "Ансамбль деревьев градиентного бустинга, базовая модель сравнения" .
+sn:GNNModel a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Графовая нейросеть (GNN)"@ru ;
+    sn:definition "Нейросеть, обучающаяся на структуре графа событие–объект" ;
+    sn:attr [ sn:attrName "Вход" ; sn:attrValue "граф «событие–объект»" ] .
+sn:HeteroGNN a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Гетерогенная GNN"@ru ;
+    sn:definition "GNN, различающая типы вершин и рёбер графа (событие, заявка, предложение, ресурс)" ;
+    sn:attr [ sn:attrName "Типы вершин" ; sn:attrValue "событие, заявка, предложение, ресурс" ] .
+sn:Forecast a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Прогноз KPI"@ru ;
+    sn:definition "Вычисленное моделью остаточное время кейса и уверенность в нём" .
+sn:Recommendation a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Рекомендация"@ru ;
+    sn:definition "Сообщение: что сделать, кому и на основании какого правила" .
+sn:DataDrift a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Дрейф данных"@ru ;
+    sn:definition "Состояние, при котором распределение признаков заметно отличается от обучающего" .
+sn:BPIC2017 a sn:Concept ; sn:group sn:G_Info ; rdfs:label "Журнал BPI Challenge 2017"@ru ;
+    sn:definition "Конкретный журнал кредитного процесса голландского банка, переведённый в OCEL 2.0" ;
+    sn:attr [ sn:attrName "Число событий" ; sn:attrValue "1 202 267" ] .
+
+# --- Физические объекты ---
+sn:ComputeNode a sn:Concept ; sn:group sn:G_Phys ; rdfs:label "Вычислительный узел"@ru ;
+    sn:definition "Оборудование, на котором работают компоненты модуля" ;
+    sn:attr [ sn:attrName "Сеть" ; sn:attrValue "корпоративная ЛВС 10 Гбит/с" ] .
+sn:Server a sn:Concept ; sn:group sn:G_Phys ; rdfs:label "Сервер"@ru ;
+    sn:definition "Вычислительный узел, работающий круглосуточно в серверной" ;
+    sn:attr [ sn:attrName "Режим работы" ; sn:attrValue "24/7" ] .
+sn:AppServer a sn:Concept ; sn:group sn:G_Phys ; rdfs:label "Сервер приложений"@ru ;
+    sn:definition "Сервер, на котором выполняются веб-интерфейс, ML-модуль и модуль поддержки решений" .
+sn:DBServer a sn:Concept ; sn:group sn:G_Phys ; rdfs:label "Сервер БД"@ru ;
+    sn:definition "Сервер, на котором размещено хранилище OCEL-данных" .
+sn:GPUServer a sn:Concept ; sn:group sn:G_Phys ; rdfs:label "GPU-сервер"@ru ;
+    sn:definition "Сервер с графическими ускорителями для обучения графовых нейросетей" ;
+    sn:attr [ sn:attrName "Ускорители" ; sn:attrValue "2 × NVIDIA A100 40 ГБ" ] .
+sn:GPU01 a sn:Concept ; sn:group sn:G_Phys ; rdfs:label "GPU-сервер gpu-01"@ru ;
+    sn:definition "Конкретный GPU-сервер стойки 3 серверной" .
+sn:AnalystWorkstation a sn:Concept ; sn:group sn:G_Phys ; rdfs:label "Рабочая станция аналитика"@ru ;
+    sn:definition "Компьютер, с которого аналитик работает с веб-интерфейсом модуля" .
+sn:NetworkStorage a sn:Concept ; sn:group sn:G_Phys ; rdfs:label "Сетевое хранилище"@ru ;
+    sn:definition "Общий дисковый ресурс для журналов, весов моделей и трасс вывода" .
+sn:DataCenter a sn:Concept ; sn:group sn:G_Phys ; rdfs:label "Серверная (ЦОД)"@ru ;
+    sn:definition "Помещение, где установлены серверы и хранилище" .
+
+# --- Бизнес-правила и ограничения ---
+sn:MonitoringRegulation a sn:Concept ; sn:group sn:G_Rule ; rdfs:label "Регламент мониторинга процесса"@ru ;
+    sn:definition "Документ, задающий порядок предиктивного мониторинга кредитных заявок" .
+sn:SLANorm a sn:Concept ; sn:group sn:G_Rule ; rdfs:label "Норматив SLA"@ru ;
+    sn:definition "Предельное время обработки заявки и доля, после которой кейс считается рискованным" ;
+    sn:attr [ sn:attrName "Значение" ; sn:attrValue "720 ч, порог внимания 80 %" ] .
+sn:DataQualityReq a sn:Concept ; sn:group sn:G_Rule ; rdfs:label "Требования к качеству журнала"@ru ;
+    sn:definition "Допустимые доли пропусков и дубликатов и минимальная длина префикса для прогноза" ;
+    sn:attr [ sn:attrName "Значение" ; sn:attrValue "пропуски ≤ 5 %, дубликаты ≤ 1 %, префикс ≥ 3 событий" ] .
+sn:ModelSelectionPolicy a sn:Concept ; sn:group sn:G_Rule ; rdfs:label "Политика выбора модели"@ru ;
+    sn:definition "Правило выбора прогноза при расхождении XGBoost и GNN более чем на 25 %" .
+sn:EscalationRegulation a sn:Concept ; sn:group sn:G_Rule ; rdfs:label "Регламент эскалации"@ru ;
+    sn:definition "Кому и при какой уверенности прогноза передаётся кейс с высоким риском" ;
+    sn:attr [ sn:attrName "Минимальная уверенность" ; sn:attrValue "0,7" ] .
+sn:RetrainingRegulation a sn:Concept ; sn:group sn:G_Rule ; rdfs:label "Регламент переобучения"@ru ;
+    sn:definition "Условия и порядок переобучения моделей при дрейфе данных" .
+sn:DriftThreshold a sn:Concept ; sn:group sn:G_Rule ; rdfs:label "Порог дрейфа признаков"@ru ;
+    sn:definition "Значение индекса стабильности признаков, выше которого модель переобучается" ;
+    sn:attr [ sn:attrName "Значение" ; sn:attrValue "PSI > 0,2" ] .
+
+# --- Система, модули, внешние системы ---
+sn:OCPAModule a sn:Concept ; sn:group sn:G_System ; rdfs:label "Модуль процессной аналитики"@ru ;
+    sn:definition "Программный модуль ВКР, автоматизирующий предиктивный мониторинг по OCEL 2.0" .
+sn:LoadModule a sn:Concept ; sn:group sn:G_System ; rdfs:label "Модуль загрузки журналов"@ru ;
+    sn:definition "Принимает файлы XES/CSV и выполняет их предварительную обработку" .
+sn:Converter a sn:Concept ; sn:group sn:G_System ; rdfs:label "Конвертер XES→OCEL"@ru ;
+    sn:definition "Компонент, строящий объекты и связи OCEL 2.0 из плоского журнала" .
+sn:FeatureModule a sn:Concept ; sn:group sn:G_System ; rdfs:label "Модуль извлечения признаков"@ru ;
+    sn:definition "Строит граф событие–объект и рассчитывает признаки префиксов" .
+sn:MLModule a sn:Concept ; sn:group sn:G_System ; rdfs:label "ML-модуль (XGBoost)"@ru ;
+    sn:definition "Обучение и инференс модели XGBoost" .
+sn:GNNModule a sn:Concept ; sn:group sn:G_System ; rdfs:label "GNN-модуль"@ru ;
+    sn:definition "Обучение и инференс графовых нейросетей" .
+sn:DSSModule a sn:Concept ; sn:group sn:G_System ; rdfs:label "Модуль поддержки решений"@ru ;
+    sn:definition "База знаний с правилами, которая превращает прогнозы в объяснимые рекомендации" .
+sn:WebUI a sn:Concept ; sn:group sn:G_System ; rdfs:label "Веб-интерфейс"@ru ;
+    sn:definition "Пользовательский интерфейс модуля на Flask" .
+sn:OCELStore a sn:Concept ; sn:group sn:G_System ; rdfs:label "Хранилище OCEL (MongoDB)"@ru ;
+    sn:definition "Документная СУБД с коллекциями событий, объектов и связей" .
+sn:ERPSystem a sn:Concept ; sn:group sn:G_System ; rdfs:label "ERP/CRM-система банка"@ru ;
+    sn:definition "Внешняя учётная система, в которой фиксируются события кредитного процесса" .
+sn:NotificationService a sn:Concept ; sn:group sn:G_System ; rdfs:label "Сервис уведомлений"@ru ;
+    sn:definition "Внешняя система рассылки сообщений по почте и в мессенджер" .
+
+# ---------------------------------------------------------------------
+# 4. Связи (смысловые отношения)
+# ---------------------------------------------------------------------
+# Родовидовые: «является»
+sn:BusinessAnalyst sn:isA sn:Participant .
+sn:DataSpecialist  sn:isA sn:Participant .
+sn:MLEngineer      sn:isA sn:DataSpecialist .
+sn:DataEngineer    sn:isA sn:DataSpecialist .
+sn:ProcessOwner    sn:isA sn:Participant .
+sn:DomainExpert    sn:isA sn:Participant .
+sn:CycleTime       sn:isA sn:KPI .
+sn:RemainingTime   sn:isA sn:KPI .
+sn:XGBTraining     sn:isA sn:ModelTraining .
+sn:GNNTraining     sn:isA sn:ModelTraining .
+sn:Retraining      sn:isA sn:ModelTraining .
+sn:EventLog        sn:isA sn:InformationObject .
+sn:XESLog          sn:isA sn:EventLog .
+sn:OCELLog         sn:isA sn:EventLog .
+sn:Event           sn:isA sn:InformationObject .
+sn:BusinessObject  sn:isA sn:InformationObject .
+sn:Application     sn:isA sn:BusinessObject .
+sn:ProcessCase     sn:isA sn:InformationObject .
+sn:TracePrefix     sn:isA sn:InformationObject .
+sn:EOGraph         sn:isA sn:InformationObject .
+sn:FeatureVector   sn:isA sn:InformationObject .
+sn:PredictiveModel sn:isA sn:InformationObject .
+sn:XGBModel        sn:isA sn:PredictiveModel .
+sn:GNNModel        sn:isA sn:PredictiveModel .
+sn:HeteroGNN       sn:isA sn:GNNModel .
+sn:Forecast        sn:isA sn:InformationObject .
+sn:Recommendation  sn:isA sn:InformationObject .
+sn:DataDrift       sn:isA sn:InformationObject .
+sn:Server          sn:isA sn:ComputeNode .
+sn:AppServer       sn:isA sn:Server .
+sn:DBServer        sn:isA sn:Server .
+sn:GPUServer       sn:isA sn:Server .
+sn:AnalystWorkstation sn:isA sn:ComputeNode .
+# Родовидовые: «экземпляр класса»
+sn:BPIC2017 sn:instanceOf sn:OCELLog .
+sn:GPU01    sn:instanceOf sn:GPUServer .
+
+# Часть – целое: «состоит из»
+sn:PredictiveMonitoring sn:partOf sn:QualityCheck, sn:FeatureExtraction, sn:KPIForecasting,
+                                  sn:SLAMonitoring, sn:RecommendationMaking .
+sn:OCPAModule sn:partOf sn:LoadModule, sn:Converter, sn:FeatureModule, sn:MLModule,
+                        sn:GNNModule, sn:DSSModule, sn:WebUI .
+sn:OCELLog     sn:partOf sn:Event, sn:BusinessObject .
+sn:ProcessCase sn:partOf sn:TracePrefix .
+sn:MonitoringRegulation sn:partOf sn:SLANorm, sn:EscalationRegulation, sn:DataQualityReq, sn:ModelSelectionPolicy .
+sn:RetrainingRegulation sn:partOf sn:DriftThreshold .
+
+# Функциональные
+sn:BusinessAnalyst sn:performs sn:SLAMonitoring, sn:BottleneckAnalysis, sn:RecommendationMaking .
+sn:MLEngineer      sn:performs sn:ModelTraining, sn:Retraining .
+sn:DataEngineer    sn:performs sn:LogCollection, sn:XesToOcel .
+sn:DomainExpert    sn:performs sn:QualityCheck .
+sn:BusinessAnalyst sn:uses sn:WebUI, sn:AnalystWorkstation .
+
+sn:LogCollection   sn:uses sn:ERPSystem .
+sn:XesToOcel       sn:uses sn:XESLog .
+sn:QualityCheck    sn:uses sn:OCELLog .
+sn:GraphBuilding   sn:uses sn:OCELLog .
+sn:FeatureExtraction sn:uses sn:EOGraph, sn:TracePrefix .
+sn:XGBTraining     sn:uses sn:FeatureVector .
+sn:GNNTraining     sn:uses sn:EOGraph, sn:GPUServer .
+sn:KPIForecasting  sn:uses sn:PredictiveModel, sn:TracePrefix .
+sn:SLAMonitoring   sn:uses sn:Forecast .
+sn:BottleneckAnalysis sn:uses sn:BPIC2017 .
+sn:RecommendationMaking sn:uses sn:Forecast, sn:NotificationService .
+sn:OCELStore       sn:uses sn:DBServer .
+sn:Converter       sn:uses sn:OCELStore .
+sn:GNNModule       sn:uses sn:HeteroGNN, sn:NetworkStorage .
+
+sn:LogCollection   sn:creates sn:XESLog .
+sn:XesToOcel       sn:creates sn:OCELLog .
+sn:GraphBuilding   sn:creates sn:EOGraph .
+sn:FeatureExtraction sn:creates sn:FeatureVector .
+sn:XGBTraining     sn:creates sn:XGBModel .
+sn:GNNTraining     sn:creates sn:GNNModel .
+sn:KPIForecasting  sn:creates sn:Forecast .
+sn:RecommendationMaking sn:creates sn:Recommendation .
+sn:ERPSystem       sn:creates sn:Event, sn:Application .
+
+sn:LoadModule  sn:automates sn:LogCollection .
+sn:Converter   sn:automates sn:XesToOcel .
+sn:FeatureModule sn:automates sn:FeatureExtraction, sn:GraphBuilding .
+sn:MLModule    sn:automates sn:XGBTraining, sn:KPIForecasting .
+sn:GNNModule   sn:automates sn:GNNTraining, sn:KPIForecasting .
+sn:DSSModule   sn:automates sn:RecommendationMaking, sn:SLAMonitoring .
+sn:NotificationService sn:automates sn:SLAEscalation .
+
+sn:BusinessObject sn:affects sn:CycleTime .
+sn:DataDrift      sn:affects sn:ModelQuality .
+sn:FeatureVector  sn:affects sn:ModelQuality .
+
+sn:SLAMonitoring        sn:aimsAt sn:GoalSLARisk .
+sn:BottleneckAnalysis   sn:aimsAt sn:GoalBottlenecks .
+sn:RecommendationMaking sn:aimsAt sn:GoalSLARisk .
+sn:DSSModule            sn:aimsAt sn:GoalInterpretability .
+sn:OCPAModule           sn:aimsAt sn:GoalBottlenecks .
+
+sn:ProcessOwner    sn:responsibleFor sn:GoalSLARisk .
+sn:BusinessAnalyst sn:responsibleFor sn:GoalBottlenecks .
+sn:MLEngineer      sn:responsibleFor sn:ModelQuality .
+sn:DomainExpert    sn:responsibleFor sn:GoalInterpretability .
+
+# Атрибутивные: «имеет свойство»
+sn:ProcessCase     sn:hasProperty sn:CycleTime, sn:RemainingTime .
+sn:PredictiveModel sn:hasProperty sn:ModelQuality .
+sn:Forecast        sn:hasProperty sn:RemainingTime .
+
+# Причинно-следственные
+sn:DataDrift sn:causes sn:Retraining .
+sn:Forecast  sn:causes sn:SLAEscalation .
+sn:SLAEscalation sn:causes sn:RecommendationMaking .
+sn:DataQualityReq sn:conditionOf sn:FeatureExtraction .
+sn:DriftThreshold sn:conditionOf sn:Retraining .
+
+# Временные
+sn:LogCollection     sn:precedes sn:XesToOcel .
+sn:XesToOcel         sn:precedes sn:QualityCheck .
+sn:QualityCheck      sn:precedes sn:GraphBuilding .
+sn:GraphBuilding     sn:precedes sn:FeatureExtraction .
+sn:FeatureExtraction sn:precedes sn:ModelTraining .
+sn:ModelTraining     sn:precedes sn:KPIForecasting .
+sn:KPIForecasting    sn:precedes sn:SLAMonitoring .
+sn:SLAMonitoring     sn:precedes sn:RecommendationMaking .
+sn:BottleneckAnalysis sn:during sn:SLAMonitoring .
+
+# Нормативные
+sn:SLANorm              sn:regulates sn:SLAMonitoring .
+sn:DataQualityReq       sn:regulates sn:QualityCheck .
+sn:ModelSelectionPolicy sn:regulates sn:KPIForecasting .
+sn:RetrainingRegulation sn:regulates sn:Retraining .
+sn:EscalationRegulation sn:regulates sn:SLAEscalation .
+sn:MonitoringRegulation sn:regulates sn:PredictiveMonitoring .
+sn:SLANorm        sn:restricts sn:CycleTime .
+sn:DriftThreshold sn:restricts sn:DataDrift .
+sn:DataQualityReq sn:restricts sn:EventLog .
+
+# Пространственные и количественные
+sn:AppServer      sn:locatedIn sn:DataCenter .
+sn:DBServer       sn:locatedIn sn:DataCenter .
+sn:GPUServer      sn:locatedIn sn:DataCenter .
+sn:GPU01          sn:locatedIn sn:DataCenter .
+sn:NetworkStorage sn:locatedIn sn:DataCenter .
+sn:WebUI          sn:locatedIn sn:AppServer .
+sn:MLModule       sn:locatedIn sn:AppServer .
+sn:GNNModule      sn:locatedIn sn:GPUServer .
+sn:OCELStore      sn:locatedIn sn:DBServer .
+sn:CycleTime      sn:notGreater sn:SLANorm .
+sn:RemainingTime  sn:notGreater sn:CycleTime .
+
+# N-арное отношение через вершину-событие «Эскалация риска SLA»
+# (аналог примера «Подбор кадров»: одно событие связывает 7 участников)
+sn:SLAEscalation sn:agent      sn:ProcessOwner ;
+                 sn:object     sn:ProcessCase ;
+                 sn:instrument sn:DSSModule ;
+                 sn:basis      sn:EscalationRegulation ;
+                 sn:result     sn:Recommendation ;
+                 sn:place      sn:AppServer ;
+                 sn:aimsAt     sn:GoalSLARisk .
