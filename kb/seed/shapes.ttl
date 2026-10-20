@@ -1,0 +1,83 @@
+# =====================================================================
+#  Именованный граф <http://bmstu.ru/iu12/ocpa/graph/shapes>
+#  Формы SHACL: тип слота (sh:datatype / sh:class), указатель R
+#  (sh:minInclusive / sh:maxInclusive), обязательность (sh:minCount).
+#  Проверка выполняется pySHACL при каждом добавлении и изменении.
+#  Цели sh:targetClass действуют и на потомков по rdfs:subClassOf.
+# =====================================================================
+@prefix ex:   <http://bmstu.ru/iu12/ocpa#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:EventLogShape a sh:NodeShape ; sh:targetClass ex:EventLog ;
+    rdfs:label "Журнал событий"@ru ;
+    sh:property [ sh:path ex:nEvents ; sh:name "Число событий" ; sh:datatype xsd:integer ;
+                  sh:minCount 1 ; sh:maxCount 1 ; sh:minInclusive 1 ] ;
+    sh:property [ sh:path ex:missingRatio ; sh:name "Доля пропусков" ; sh:datatype xsd:decimal ;
+                  sh:minCount 1 ; sh:maxCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ex:duplicateRatio ; sh:name "Доля дубликатов" ; sh:datatype xsd:decimal ;
+                  sh:maxCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ex:medianTraceLength ; sh:name "Медианная длина трассы" ; sh:datatype xsd:integer ;
+                  sh:minCount 1 ; sh:minInclusive 1 ; sh:maxInclusive 1000 ] ;
+    sh:property [ sh:path ex:format ; sh:name "Формат" ; sh:datatype xsd:string ; sh:minCount 1 ] .
+
+ex:ProcessCaseShape a sh:NodeShape ; sh:targetClass ex:ProcessCase ;
+    rdfs:label "Экземпляр процесса"@ru ;
+    sh:property [ sh:path ex:caseId ; sh:name "Идентификатор кейса" ; sh:datatype xsd:string ;
+                  sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path ex:inLog ; sh:name "Журнал" ; sh:class ex:EventLog ;
+                  sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path ex:prefixLength ; sh:name "Длина префикса" ; sh:datatype xsd:integer ;
+                  sh:minCount 1 ; sh:maxCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 500 ] ;
+    sh:property [ sh:path ex:elapsedHours ; sh:name "Прошло времени, ч" ; sh:datatype xsd:decimal ;
+                  sh:minCount 1 ; sh:maxCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 20000 ] ;
+    sh:property [ sh:path ex:nRelatedObjects ; sh:name "Число связанных объектов" ; sh:datatype xsd:integer ;
+                  sh:minCount 1 ; sh:maxCount 1 ; sh:minInclusive 1 ; sh:maxInclusive 1000 ] ;
+    sh:property [ sh:path ex:nObjectTypes ; sh:name "Число типов объектов" ; sh:datatype xsd:integer ;
+                  sh:maxCount 1 ; sh:minInclusive 1 ] ;
+    sh:property [ sh:path ex:slaNorm ; sh:name "Норматив SLA" ; sh:class ex:Norm ; sh:minCount 1 ] .
+
+ex:PredictiveModelShape a sh:NodeShape ; sh:targetClass ex:PredictiveModel ;
+    rdfs:label "Прогнозная модель"@ru ;
+    sh:property [ sh:path ex:mae ; sh:name "MAE" ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:minInclusive 0 ; sh:lessThanOrEquals ex:rmse ] ;
+    sh:property [ sh:path ex:rmse ; sh:name "RMSE" ; sh:datatype xsd:decimal ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:minInclusive 0 ] ;
+    sh:property [ sh:path ex:driftScore ; sh:name "Индекс дрейфа" ; sh:datatype xsd:decimal ;
+                  sh:maxCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ex:status ; sh:name "Статус" ; sh:in ( ex:Active ex:Inactive ) ; sh:minCount 1 ] ;
+    sh:property [ sh:path ex:deployedOn ; sh:name "Развёрнута на" ; sh:class ex:ComputeNode ; sh:minCount 1 ] ;
+    sh:property [ sh:path ex:objectSensitivity ; sh:name "Чувствительность к объектам" ; sh:datatype xsd:decimal ;
+                  sh:minInclusive 0 ; sh:maxInclusive 1 ] .
+
+ex:NormShape a sh:NodeShape ; sh:targetClass ex:Norm ;
+    rdfs:label "Норматив"@ru ;
+    sh:property [ sh:path ex:thresholdHours ; sh:name "Норматив, ч" ; sh:datatype xsd:decimal ;
+                  sh:minExclusive 0 ; sh:maxInclusive 8760 ] ;
+    sh:property [ sh:path ex:warnShare ; sh:name "Порог внимания" ; sh:datatype xsd:decimal ;
+                  sh:minExclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ex:driftThreshold ; sh:name "Порог дрейфа" ; sh:datatype xsd:decimal ;
+                  sh:minExclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ex:maxGpuLoad ; sh:name "Допустимая загрузка GPU" ; sh:datatype xsd:decimal ;
+                  sh:minExclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ex:minConfidence ; sh:name "Минимальная уверенность" ; sh:datatype xsd:decimal ;
+                  sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ex:minPrefixLength ; sh:name "Минимальная длина префикса" ; sh:datatype xsd:integer ;
+                  sh:minInclusive 1 ; sh:maxInclusive 100 ] .
+
+ex:ComputeNodeShape a sh:NodeShape ; sh:targetClass ex:ComputeNode ;
+    rdfs:label "Вычислительный узел"@ru ;
+    sh:property [ sh:path ex:load ; sh:name "Загрузка" ; sh:datatype xsd:decimal ;
+                  sh:minCount 1 ; sh:maxCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ex:gpuCount ; sh:name "Число GPU" ; sh:datatype xsd:integer ;
+                  sh:minInclusive 1 ; sh:maxInclusive 16 ] .
+
+ex:RoleShape a sh:NodeShape ; sh:targetClass ex:Role ;
+    rdfs:label "Роль"@ru ;
+    sh:property [ sh:path ex:personName ; sh:name "ФИО" ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path ex:notifyChannel ; sh:name "Канал уведомлений" ; sh:datatype xsd:string ; sh:minCount 1 ] .
+
+ex:SystemModuleShape a sh:NodeShape ; sh:targetClass ex:SystemModule ;
+    rdfs:label "Модуль системы"@ru ;
+    sh:property [ sh:path ex:hostedOn ; sh:name "Размещён на" ; sh:class ex:ComputeNode ; sh:minCount 1 ] .

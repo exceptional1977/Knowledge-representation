@@ -1,0 +1,102 @@
+# =====================================================================
+#  Именованный граф <http://bmstu.ru/iu12/ocpa/graph/data>
+#  Фреймы-экземпляры — рабочая память механизма вывода.
+#  Значения журналов и моделей XGBoost взяты из НИР (BPI Challenge 2017,
+#  выборка 600 000 событий); метрики GNN — плановые, уточняются в НИР-3.
+# =====================================================================
+@prefix ex:   <http://bmstu.ru/iu12/ocpa#> .
+@prefix sn:   <http://bmstu.ru/iu12/ocpa/sn#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# ---------- журналы событий ----------
+ex:Log_BPIC2017 a ex:OCELLog ; rdfs:label "OCEL BPI Challenge 2017"@ru ; ex:semNode sn:BPIC2017 ;
+    ex:nEvents 1202267 ; ex:nObjects 74653 ; ex:nE2O 1658420 ;
+    ex:missingRatio 0.012 ; ex:duplicateRatio 0.004 ; ex:medianTraceLength 20 ;
+    ex:createdAt "2026-09-15T10:00:00"^^xsd:dateTime ; ex:modifiedBy "И.С. Бронников" .
+ex:Log_BPIC2017_XES a ex:XESLog ; rdfs:label "XES BPI Challenge 2017 (исходный)"@ru ; ex:semNode sn:XESLog ;
+    ex:nEvents 1202267 ; ex:nObjects 31509 ; ex:nE2O 1202267 ;
+    ex:missingRatio 0.012 ; ex:duplicateRatio 0.015 ;
+    ex:createdAt "2026-09-15T09:30:00"^^xsd:dateTime ; ex:modifiedBy "И.С. Бронников" .
+
+# ---------- экземпляры процесса (кейсы кредитных заявок) ----------
+ex:Case_A1001 a ex:LoanApplicationCase ; rdfs:label "Кейс Application_1001"@ru ;
+    ex:caseId "Application_1001" ; ex:inLog ex:Log_BPIC2017 ;
+    ex:prefixLength 12 ; ex:elapsedHours 410.0 ; ex:avgWaitHours 37.27 ;
+    ex:nRelatedObjects 4 ; ex:nObjectTypes 3 ; ex:bottleneckActivity "W_Validate application" ;
+    ex:createdAt "2026-10-01T08:00:00"^^xsd:dateTime ; ex:modifiedBy "И.С. Бронников" .
+ex:Case_A1002 a ex:LoanApplicationCase ; rdfs:label "Кейс Application_1002"@ru ;
+    ex:caseId "Application_1002" ; ex:inLog ex:Log_BPIC2017 ;
+    ex:prefixLength 8 ; ex:elapsedHours 120.0 ; ex:avgWaitHours 17.14 ;
+    ex:nRelatedObjects 2 ; ex:nObjectTypes 2 ; ex:bottleneckActivity "W_Call incomplete files" ;
+    ex:createdAt "2026-10-01T08:00:00"^^xsd:dateTime ; ex:modifiedBy "И.С. Бронников" .
+ex:Case_A1003 a ex:LoanApplicationCase ; rdfs:label "Кейс Application_1003"@ru ;
+    ex:caseId "Application_1003" ; ex:inLog ex:Log_BPIC2017 ;
+    ex:prefixLength 2 ; ex:elapsedHours 5.0 ; ex:avgWaitHours 5.0 ;
+    ex:nRelatedObjects 1 ; ex:nObjectTypes 1 ; ex:bottleneckActivity "A_Submitted" ;
+    ex:createdAt "2026-10-01T08:00:00"^^xsd:dateTime ; ex:modifiedBy "И.С. Бронников" .
+ex:Case_A1004 a ex:LoanApplicationCase ; rdfs:label "Кейс Application_1004"@ru ;
+    ex:caseId "Application_1004" ; ex:inLog ex:Log_BPIC2017 ;
+    ex:prefixLength 15 ; ex:elapsedHours 500.0 ; ex:avgWaitHours 35.71 ;
+    ex:nRelatedObjects 2 ; ex:nObjectTypes 2 ; ex:bottleneckActivity "O_Sent (mail and online)" ;
+    ex:createdAt "2026-10-01T08:00:00"^^xsd:dateTime ; ex:modifiedBy "И.С. Бронников" .
+
+# ---------- прогнозные модели ----------
+ex:XGB_v1 a ex:XGBoostModel ; rdfs:label "XGBoost v1 (OCEL-признаки)"@ru ; ex:semNode sn:XGBModel ;
+    ex:mae 9.80 ; ex:rmse 20.94 ; ex:driftScore 0.08 ; ex:trainedOn ex:Log_BPIC2017 ; ex:version "1.0" ;
+    ex:createdAt "2026-09-20T12:00:00"^^xsd:dateTime ; ex:modifiedBy "И.С. Бронников" .
+ex:GNN_v1 a ex:HeteroGNNModel ; rdfs:label "HeteroGNN v1"@ru ; ex:semNode sn:HeteroGNN ;
+    ex:mae 8.90 ; ex:rmse 18.70 ; ex:driftScore 0.12 ; ex:trainedOn ex:Log_BPIC2017 ; ex:version "0.9" ;
+    ex:createdAt "2026-10-05T12:00:00"^^xsd:dateTime ; ex:modifiedBy "И.С. Бронников" .
+
+# ---------- нормативы (параметры бизнес-правил) ----------
+ex:Norm_SLA_Loan a ex:Norm ; rdfs:label "Норматив SLA кредитной заявки"@ru ; ex:semNode sn:SLANorm ;
+    ex:thresholdHours 720.0 ; ex:warnShare 0.8 .
+ex:Norm_Quality a ex:Norm ; rdfs:label "Требования к качеству журнала"@ru ; ex:semNode sn:DataQualityReq ;
+    ex:maxMissingRatio 0.05 ; ex:maxDuplicateRatio 0.01 ; ex:minPrefixLength 3 .
+ex:Norm_ModelSelection a ex:Norm ; rdfs:label "Политика выбора модели"@ru ; ex:semNode sn:ModelSelectionPolicy ;
+    ex:maxRelDiff 0.25 ; ex:complexityThreshold 3 .
+ex:Norm_Escalation a ex:Norm ; rdfs:label "Регламент эскалации"@ru ; ex:semNode sn:EscalationRegulation ;
+    ex:minConfidence 0.7 .
+ex:Norm_Drift a ex:Norm ; rdfs:label "Порог дрейфа и загрузки GPU"@ru ; ex:semNode sn:DriftThreshold ;
+    ex:driftThreshold 0.2 ; ex:maxGpuLoad 0.8 .
+
+# ---------- оборудование ----------
+ex:AppServer01 a ex:Server ; rdfs:label "Сервер приложений app-01"@ru ; ex:semNode sn:AppServer ; ex:load 0.35 .
+ex:DBServer01  a ex:Server ; rdfs:label "Сервер БД db-01"@ru ; ex:semNode sn:DBServer ; ex:load 0.40 .
+ex:GPU01 a ex:GPUServer ; rdfs:label "GPU-сервер gpu-01"@ru ; ex:semNode sn:GPU01 ; ex:load 0.45 .
+
+# ---------- модули системы ----------
+ex:MLModule01  a ex:SystemModule ; rdfs:label "ML-модуль (XGBoost)"@ru ; ex:semNode sn:MLModule ;
+    ex:hostedOn ex:AppServer01 ; ex:version "2.1" .
+ex:GNNModule01 a ex:SystemModule ; rdfs:label "GNN-модуль"@ru ; ex:semNode sn:GNNModule ;
+    ex:hostedOn ex:GPU01 ; ex:version "0.9" .
+ex:DSSModule01 a ex:SystemModule ; rdfs:label "Модуль поддержки решений"@ru ; ex:semNode sn:DSSModule ;
+    ex:hostedOn ex:AppServer01 ; ex:version "1.0" .
+
+ex:LoadModule01  a ex:SystemModule ; rdfs:label "Модуль загрузки журналов"@ru ; ex:semNode sn:LoadModule ;
+    ex:hostedOn ex:AppServer01 ; ex:version "2.0" .
+ex:Converter01   a ex:SystemModule ; rdfs:label "Конвертер XES→OCEL"@ru ; ex:semNode sn:Converter ;
+    ex:hostedOn ex:AppServer01 ; ex:version "2.0" .
+ex:FeatureModule01 a ex:SystemModule ; rdfs:label "Модуль извлечения признаков"@ru ; ex:semNode sn:FeatureModule ;
+    ex:hostedOn ex:AppServer01 ; ex:version "2.1" .
+ex:WebUI01       a ex:SystemModule ; rdfs:label "Веб-интерфейс (Flask)"@ru ; ex:semNode sn:WebUI ;
+    ex:hostedOn ex:AppServer01 ; ex:version "2.1" .
+ex:OCELStore01   a ex:SystemModule ; rdfs:label "Хранилище OCEL (MongoDB)"@ru ; ex:semNode sn:OCELStore ;
+    ex:hostedOn ex:DBServer01 ; ex:version "7.0" .
+ex:NAS01 a ex:StorageNode ; rdfs:label "Сетевое хранилище nas-01"@ru ; ex:semNode sn:NetworkStorage ; ex:load 0.30 .
+ex:DC1 a ex:Facility ; rdfs:label "Серверная ЦОД-1"@ru ; ex:semNode sn:DataCenter .
+ex:ERP01 a ex:ExternalSystem ; rdfs:label "ERP/CRM-система банка"@ru ; ex:semNode sn:ERPSystem .
+ex:Notify01 a ex:ExternalSystem ; rdfs:label "Сервис уведомлений"@ru ; ex:semNode sn:NotificationService .
+
+# ---------- участники (экземпляры ролей) ----------
+ex:Analyst_Ivanova a ex:BusinessAnalystRole ; rdfs:label "Иванова А.П. (бизнес-аналитик)"@ru ;
+    ex:semNode sn:BusinessAnalyst ; ex:personName "Иванова Анна Петровна" .
+ex:MLEng_Petrov a ex:MLEngineerRole ; rdfs:label "Петров К.С. (ML-инженер)"@ru ;
+    ex:semNode sn:MLEngineer ; ex:personName "Петров Кирилл Сергеевич" .
+ex:Owner_Sidorov a ex:ProcessOwnerRole ; rdfs:label "Сидоров В.Н. (владелец процесса)"@ru ;
+    ex:semNode sn:ProcessOwner ; ex:personName "Сидоров Виктор Николаевич" .
+ex:Expert_Smirnova a ex:DomainExpertRole ; rdfs:label "Смирнова Е.А. (эксперт по кредитованию)"@ru ;
+    ex:semNode sn:DomainExpert ; ex:personName "Смирнова Елена Алексеевна" .
+ex:DataEng_Kuznetsov a ex:DataEngineerRole ; rdfs:label "Кузнецов Д.И. (инженер данных)"@ru ;
+    ex:semNode sn:DataEngineer ; ex:personName "Кузнецов Дмитрий Игоревич" .
