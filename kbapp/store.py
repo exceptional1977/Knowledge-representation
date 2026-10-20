@@ -203,6 +203,7 @@ class KnowledgeBase:
             j.add((node, EX.author, Literal(self.author)))
             j.add((node, RDFS.label, Literal(action)))
             j.add((node, EX.summary, Literal(json.dumps(summary, ensure_ascii=False))))
+            j.serialize(self.cur_dir / "journal.ttl", format="turtle")   # журнал сохраняется сразу
             with open(self.out_dir / "journal.jsonl", "a", encoding="utf-8") as fh:
                 fh.write(json.dumps({"n": n, "at": str(self.now()), "action": action, **summary},
                                     ensure_ascii=False) + "\n")
