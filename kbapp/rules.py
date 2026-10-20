@@ -162,7 +162,10 @@ class Rule:
         self.specificity = len(acc["patterns"]) + acc["filters"]
         self.reads = {pattern_key(t) for t, _, _ in acc["patterns"]} - {(RDFS.label, None)}
         self.read_preds = {k[0] for k in self.reads} | {RDFS.subClassOf, RDFS.label}
-        self.writes = {pattern_key(t) for t in self.insert_tpl if t[1] != RDFS.label}
+        # заключения о существующих узлах; слоты новых фреймов (_:x) правила не читают —
+        # кроме их класса (rdf:type), по которому новую ситуацию можно найти
+        self.writes = {pattern_key(t) for t in self.insert_tpl
+                       if t[1] != RDFS.label and (not isinstance(t[0], BNode) or t[1] == RDF.type)}
         for pr in P.PRODUCES.get(self.post, []):
             self.writes.add((pr, None))
 
