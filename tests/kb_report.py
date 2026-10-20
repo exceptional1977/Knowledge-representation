@@ -9,6 +9,7 @@ tests/kb_report.py — сводка по базе знаний для поясн
 Запуск: python tests/kb_report.py
 """
 import json
+from rdflib import URIRef
 import shutil
 import sys
 import tempfile
@@ -71,10 +72,10 @@ def main():
                                                                    EX.InsufficientData)}
     for cc in rep["class_cards"].values():
         for r in cc["rows"]:
-            r["value"] = kb.label(r["value"]) if not isinstance(r["value"], str) else r["value"]
+            r["value"] = kb.label(r["value"]) if isinstance(r["value"], URIRef) else str(r["value"])
     ic = fm.instance_card(EX.GNN_v1)
     for r in ic["rows"]:
-        r["vals"] = [kb.label(v) if not isinstance(v, str) else v for v in r["vals"]]
+        r["vals"] = [kb.label(v) if isinstance(v, URIRef) else str(v) for v in r["vals"]]
     rep["inst_card"] = ic
     rep["sparql_frames"] = {n: fm.sparql(q) for n, q in fm.TEMPLATES.items()}
     res = eng.run_forward(label="прямой вывод на исходной базе")
