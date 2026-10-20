@@ -1,0 +1,159 @@
+# =====================================================================
+#  Именованный граф <http://bmstu.ru/iu12/ocpa/graph/scenarios>
+#  Фрейм-сценарий «Мониторинг экземпляра процесса и обработка риска SLA».
+#  Каждая сцена — фрейм-ситуация со слотами «Предусловие», «Действие»,
+#  «Результат», «Следующая сцена». Переход, выбираемый правилом, задан
+#  узлом ex:transition [ ex:byRule Rxx ; ex:toScene Sy ].
+#  ex:actionProc — присоединённая процедура, исполняющая действие сцены;
+#  ex:askSlot   — слот экземпляра сценария, значение которого берётся из диалога.
+# =====================================================================
+@prefix ex:   <http://bmstu.ru/iu12/ocpa#> .
+@prefix sn:   <http://bmstu.ru/iu12/ocpa/sn#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# ---- слоты сценария и сцены ----
+ex:firstScene   a owl:ObjectProperty ; rdfs:label "Первая сцена"@ru ; rdfs:domain ex:Scenario ; rdfs:range ex:Scene .
+ex:hasScene     a owl:ObjectProperty ; rdfs:label "Сцена сценария"@ru ; rdfs:domain ex:Scenario ; rdfs:range ex:Scene .
+ex:precondition a owl:DatatypeProperty ; rdfs:label "Предусловие"@ru ; rdfs:range xsd:string .
+ex:preconditionAsk a owl:DatatypeProperty ; rdfs:label "Предусловие (SPARQL ASK)"@ru ; rdfs:domain ex:Scene ; rdfs:range xsd:string .
+ex:actionText   a owl:DatatypeProperty ; rdfs:label "Действие"@ru ; rdfs:domain ex:Scene ; rdfs:range xsd:string .
+ex:actionProc   a owl:DatatypeProperty ; rdfs:label "Процедура действия"@ru ; rdfs:domain ex:Scene ; rdfs:range xsd:string .
+ex:resultText   a owl:DatatypeProperty ; rdfs:label "Результат"@ru ; rdfs:domain ex:Scene ; rdfs:range xsd:string .
+ex:nextScene    a owl:ObjectProperty ; rdfs:label "Следующая сцена"@ru ; rdfs:domain ex:Scene ; rdfs:range ex:Scene .
+ex:transition   a owl:ObjectProperty ; rdfs:label "Переход по правилу"@ru ; rdfs:domain ex:Scene .
+ex:byRule       a owl:ObjectProperty ; rdfs:label "Правило перехода"@ru ; rdfs:range ex:Rule .
+ex:toScene      a owl:ObjectProperty ; rdfs:label "В сцену"@ru ; rdfs:range ex:Scene .
+ex:askSlot      a owl:ObjectProperty ; rdfs:label "Слот из диалога"@ru ; rdfs:domain ex:Scene .
+ex:askText      a owl:DatatypeProperty ; rdfs:label "Вопрос пользователю"@ru ; rdfs:domain ex:Scene .
+ex:mainPath     a owl:DatatypeProperty ; rdfs:label "Сцена основного пути"@ru ; rdfs:domain ex:Scene ; rdfs:range xsd:boolean .
+ex:order        a owl:DatatypeProperty ; rdfs:label "Порядок на схеме"@ru ; rdfs:domain ex:Scene ; rdfs:range xsd:integer .
+
+# ---- слоты экземпляра сценария (заполняются при исполнении) ----
+ex:ofScenario   a owl:ObjectProperty ; rdfs:label "Сценарий"@ru ; rdfs:domain ex:ScenarioRun ; rdfs:range ex:Scenario .
+ex:runCase      a owl:ObjectProperty ; rdfs:label "Кейс"@ru ; rdfs:domain ex:ScenarioRun ; rdfs:range ex:ProcessCase .
+ex:currentScene a owl:ObjectProperty ; rdfs:label "Текущая сцена"@ru ; rdfs:domain ex:ScenarioRun ; rdfs:range ex:Scene .
+ex:visitedScene a owl:ObjectProperty ; rdfs:label "Пройденная сцена"@ru ; rdfs:domain ex:ScenarioRun ; rdfs:range ex:Scene .
+ex:runStatus    a owl:DatatypeProperty ; rdfs:label "Состояние"@ru ; rdfs:domain ex:ScenarioRun .
+ex:startedAt    a owl:DatatypeProperty ; rdfs:label "Запущен"@ru ; rdfs:domain ex:ScenarioRun .
+ex:finishedAt   a owl:DatatypeProperty ; rdfs:label "Завершён"@ru ; rdfs:domain ex:ScenarioRun .
+ex:ownerConfirmed a owl:DatatypeProperty ; rdfs:label "Отправка владельцу подтверждена"@ru ; rdfs:domain ex:ScenarioRun .
+
+# ---- сценарий ----
+ex:Sc_Monitoring a ex:Scenario ; rdfs:label "Мониторинг кейса и обработка риска SLA"@ru ;
+    ex:semNode sn:SLAMonitoring ; ex:firstScene ex:S1 ;
+    rdfs:comment "Процедура бизнес-процесса «Мониторинг SLA» из семантической сети: от нового события кейса до рекомендации" ;
+    ex:hasScene ex:S1, ex:S2, ex:S3, ex:S4, ex:S4b, ex:S5, ex:S6a, ex:S6b, ex:S7, ex:SX .
+
+ex:S1 a ex:Scene ; rdfs:label "1. Регистрация события кейса"@ru ; ex:order 1 ; ex:mainPath true ;
+    ex:semNode sn:LogCollection ;
+    ex:precondition "в журнал поступило новое событие незавершённого кейса" ;
+    ex:actionText "связать экземпляр сценария с кейсом (кейс выбирает пользователь)" ;
+    ex:actionProc "bind_case" ;
+    ex:askSlot ex:runCase ; ex:askText "Для какого экземпляра процесса пришло событие?" ;
+    ex:resultText "заполнен слот «Кейс» экземпляра сценария" ;
+    ex:nextScene ex:S2 .
+
+ex:S2 a ex:Scene ; rdfs:label "2. Проверка качества данных"@ru ; ex:order 2 ; ex:mainPath true ;
+    ex:semNode sn:QualityCheck ;
+    ex:precondition "кейс связан с журналом" ;
+    ex:preconditionAsk "ASK { ?case ex:inLog ?log }" ;
+    ex:actionText "прочитать профиль качества журнала и длину префикса, применить правила R01–R04" ;
+    ex:actionProc "check_quality" ;
+    ex:resultText "определена достаточность данных кейса" ;
+    ex:transition [ ex:byRule ex:R03 ; ex:toScene ex:SX ] ;
+    ex:nextScene ex:S3 .
+
+ex:S3 a ex:Scene ; rdfs:label "3. Граф и признаки"@ru ; ex:order 3 ; ex:mainPath true ;
+    ex:semNode sn:FeatureExtraction ;
+    ex:precondition "данных достаточно" ;
+    ex:preconditionAsk "ASK { ?case ex:dataStatus ex:Sufficient }" ;
+    ex:actionText "построить граф событие–объект, рассчитать признаки префикса" ;
+    ex:actionProc "extract_features" ;
+    ex:resultText "граф построен, определена объектная сложность" ;
+    ex:nextScene ex:S4 .
+
+ex:S4 a ex:Scene ; rdfs:label "4. Прогнозирование KPI"@ru ; ex:order 4 ; ex:mainPath true ;
+    ex:semNode sn:KPIForecasting ;
+    ex:precondition "признаки рассчитаны" ;
+    ex:preconditionAsk "ASK { ?case ex:dataStatus ex:Sufficient }" ;
+    ex:actionText "получить прогнозы остаточного времени моделями XGBoost и GNN" ;
+    ex:actionProc "forecast_kpi" ;
+    ex:resultText "получены прогнозы, принят один из них" ;
+    ex:transition [ ex:byRule ex:R10 ; ex:toScene ex:S4b ] ;
+    ex:nextScene ex:S5 .
+
+ex:S4b a ex:Scene ; rdfs:label "4б. Согласование прогнозов"@ru ; ex:order 5 ; ex:mainPath false ;
+    ex:semNode sn:ModelSelectionPolicy ;
+    ex:precondition "прогнозы моделей расходятся" ;
+    ex:actionText "выбрать прогноз по политике выбора модели (правила R11, R12)" ;
+    ex:actionProc "resolve_conflict" ;
+    ex:resultText "принят прогноз одной из моделей" ;
+    ex:nextScene ex:S5 .
+
+ex:S5 a ex:Scene ; rdfs:label "5. Оценка риска нарушения SLA"@ru ; ex:order 6 ; ex:mainPath true ;
+    ex:semNode sn:SLAMonitoring ;
+    ex:precondition "прогноз принят" ;
+    ex:preconditionAsk "ASK { ?case ex:selectedForecastHours ?p }" ;
+    ex:actionText "сравнить прогноз времени цикла с нормативом SLA" ;
+    ex:actionProc "assess_risk" ;
+    ex:resultText "определён уровень риска" ;
+    ex:transition [ ex:byRule ex:R15 ; ex:toScene ex:S6b ] ,
+                  [ ex:byRule ex:R16 ; ex:toScene ex:S6a ] ;
+    ex:nextScene ex:S7 .
+
+ex:S6a a ex:Scene ; rdfs:label "6а. Усиленный контроль"@ru ; ex:order 7 ; ex:mainPath false ;
+    ex:semNode sn:SLAMonitoring ;
+    ex:precondition "риск умеренный" ;
+    ex:actionText "назначить бизнес-аналитику контроль кейса каждые 4 ч" ;
+    ex:actionProc "apply_recommendation" ;
+    ex:resultText "рекомендация передана бизнес-аналитику" ;
+    ex:nextScene ex:S7 .
+
+ex:S6b a ex:Scene ; rdfs:label "6б. Эскалация владельцу процесса"@ru ; ex:order 8 ; ex:mainPath false ;
+    ex:semNode sn:SLAEscalation ;
+    ex:precondition "риск высокий" ;
+    ex:actionText "сформировать рекомендацию и после подтверждения уведомить владельца процесса" ;
+    ex:actionProc "apply_recommendation" ;
+    ex:askSlot ex:ownerConfirmed ; ex:askText "Отправить уведомление владельцу процесса? (да/нет)" ;
+    ex:resultText "владелец процесса уведомлён" ;
+    ex:nextScene ex:S7 .
+
+ex:SX a ex:Scene ; rdfs:label "Х. Недостаточно данных (нетипичная)"@ru ; ex:order 9 ; ex:mainPath false ;
+    ex:semNode sn:DataQualityReq ; ex:typical false ;
+    ex:precondition "префикс короче минимального — прогноз невозможен" ;
+    ex:actionText "не прогнозировать; запросить у инженера данных проверку выгрузки событий" ;
+    ex:actionProc "apply_recommendation" ;
+    ex:resultText "кейс отложен до поступления событий" ;
+    ex:nextScene ex:S7 .
+
+ex:S7 a ex:Scene ; rdfs:label "7. Закрытие и журналирование"@ru ; ex:order 10 ; ex:mainPath true ;
+    ex:semNode sn:RecommendationMaking ;
+    ex:precondition "решение по кейсу принято" ;
+    ex:actionText "записать итог в экземпляр сценария и журнал" ;
+    ex:actionProc "close_run" ;
+    ex:resultText "сценарий завершён" .
+
+# ---- слоты экземпляра сценария, куда записываются результаты сцен ----
+ex:runDataStatus     a owl:ObjectProperty ;   rdfs:label "Достаточность данных"@ru ; rdfs:domain ex:ScenarioRun .
+ex:runComplexity     a owl:ObjectProperty ;   rdfs:label "Объектная сложность"@ru ; rdfs:domain ex:ScenarioRun .
+ex:runForecastXGB    a owl:DatatypeProperty ; rdfs:label "Прогноз XGBoost, ч"@ru ; rdfs:domain ex:ScenarioRun .
+ex:runForecastGNN    a owl:DatatypeProperty ; rdfs:label "Прогноз GNN, ч"@ru ; rdfs:domain ex:ScenarioRun .
+ex:runSelectedHours  a owl:DatatypeProperty ; rdfs:label "Принятый прогноз остатка, ч"@ru ; rdfs:domain ex:ScenarioRun .
+ex:runSelectedModel  a owl:ObjectProperty ;   rdfs:label "Выбранная модель"@ru ; rdfs:domain ex:ScenarioRun .
+ex:runTotalHours     a owl:DatatypeProperty ; rdfs:label "Прогноз времени цикла, ч"@ru ; rdfs:domain ex:ScenarioRun .
+ex:runRisk           a owl:ObjectProperty ;   rdfs:label "Риск нарушения SLA"@ru ; rdfs:domain ex:ScenarioRun .
+ex:runDecision       a owl:ObjectProperty ;   rdfs:label "Решение"@ru ; rdfs:domain ex:ScenarioRun .
+ex:runRecommendation a owl:DatatypeProperty ; rdfs:label "Рекомендация"@ru ; rdfs:domain ex:ScenarioRun .
+# ---- журнал шагов ----
+ex:hasStep        a owl:ObjectProperty ;   rdfs:label "Шаг исполнения"@ru ; rdfs:domain ex:ScenarioRun .
+ex:stepNo         a owl:DatatypeProperty ; rdfs:label "Номер шага"@ru .
+ex:scene          a owl:ObjectProperty ;   rdfs:label "Сцена"@ru .
+ex:preResult      a owl:DatatypeProperty ; rdfs:label "Проверка предусловия"@ru .
+ex:actionResult   a owl:DatatypeProperty ; rdfs:label "Действие"@ru .
+ex:filledSlots    a owl:DatatypeProperty ; rdfs:label "Заполненные слоты"@ru .
+ex:firedRules     a owl:DatatypeProperty ; rdfs:label "Сработавшие правила"@ru .
+ex:demonsFired    a owl:DatatypeProperty ; rdfs:label "Сработавшие демоны"@ru .
+ex:transitionRule a owl:DatatypeProperty ; rdfs:label "Правило перехода"@ru .
+ex:conflictNote   a owl:DatatypeProperty ; rdfs:label "Разрешение конфликта"@ru .

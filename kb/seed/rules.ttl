@@ -1,0 +1,405 @@
+# =====================================================================
+#  Именованный граф <http://bmstu.ru/iu12/ocpa/graph/rules>
+#  База продукций в полной форме <i, Q, P, A → B, N>:
+#    i  — rdfs:label (имя правила)
+#    Q  — ex:scope (сцена сценария или фрейм — сфера применения)
+#    P  — ex:precondition (условие применимости ядра)
+#    A→B — ex:core: запрос SPARQL Update, WHERE = условие A, INSERT = заключение B
+#          (ex:conditionText / ex:conclusionText — то же словами)
+#    N  — ex:postAction (присоединённая процедура-постусловие)
+#  ex:priority — приоритет для разрешения конфликта,
+#  ex:source   — вершина сети из группы «Бизнес-правила и ограничения».
+#  Префиксы ex:, rdfs:, xsd: механизм вывода подставляет сам.
+#  _:x в INSERT означает «создать новый фрейм-экземпляр».
+# =====================================================================
+@prefix ex:   <http://bmstu.ru/iu12/ocpa#> .
+@prefix sn:   <http://bmstu.ru/iu12/ocpa/sn#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:ConflictStrategy rdfs:label "Стратегия разрешения конфликта"@ru ;
+    rdfs:comment "1) приоритет правила; 2) специфичность условия (число шаблонов и фильтров в WHERE); 3) новизна фактов (номер цикла, в котором выведен самый свежий факт активации). Функциональный слот (owl:FunctionalProperty) не может получить второе значение: проигравшее правило блокируется и показывается в объяснении." .
+
+# ---------------- Сцена S2 «Проверка качества данных» ----------------
+ex:R01 a ex:Rule ; rdfs:label "R01" ; ex:scope ex:S2 ; ex:priority 90 ; ex:source sn:DataQualityReq ;
+    ex:precondition "журнал загружен в хранилище" ;
+    ex:conditionText "ЕСЛИ доля пропусков в журнале больше допустимой" ;
+    ex:conclusionText "ТО качество журнала = низкое" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?log ex:qualityStatus ex:LowQuality }
+WHERE {
+  ?log a/rdfs:subClassOf* ex:EventLog ; ex:missingRatio ?mr .
+  ex:Norm_Quality ex:maxMissingRatio ?max .
+  FILTER (?mr > ?max)
+}""" .
+
+ex:R02 a ex:Rule ; rdfs:label "R02" ; ex:scope ex:S2 ; ex:priority 88 ; ex:source sn:DataQualityReq ;
+    ex:precondition "журнал загружен в хранилище" ;
+    ex:conditionText "ЕСЛИ доля дубликатов событий больше допустимой" ;
+    ex:conclusionText "ТО журнал требует очистки" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?log ex:needsCleaning true }
+WHERE {
+  ?log a/rdfs:subClassOf* ex:EventLog ; ex:duplicateRatio ?dr .
+  ex:Norm_Quality ex:maxDuplicateRatio ?max .
+  FILTER (?dr > ?max)
+}""" .
+
+ex:R03 a ex:Rule ; rdfs:label "R03" ; ex:scope ex:S2 ; ex:priority 86 ; ex:source sn:DataQualityReq ;
+    ex:precondition "кейс выбран для мониторинга" ;
+    ex:conditionText "ЕСЛИ длина префикса кейса меньше минимальной" ;
+    ex:conclusionText "ТО данных недостаточно; создать ситуацию «Недостаточно данных»" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:dataStatus ex:Insufficient .
+         _:s a ex:InsufficientData ; ex:situationOf ?case ; rdfs:label ?lbl }
+WHERE {
+  ?case a/rdfs:subClassOf* ex:ProcessCase ; ex:prefixLength ?n ; ex:caseId ?cid .
+  ex:Norm_Quality ex:minPrefixLength ?min .
+  FILTER (?n < ?min)
+  BIND (CONCAT("Недостаточно данных: ", ?cid) AS ?lbl)
+}""" .
+
+ex:R04 a ex:Rule ; rdfs:label "R04" ; ex:scope ex:S2 ; ex:priority 85 ; ex:source sn:DataQualityReq ;
+    ex:precondition "кейс выбран для мониторинга" ;
+    ex:conditionText "ЕСЛИ префикс не короче минимального И качество журнала кейса не низкое" ;
+    ex:conclusionText "ТО данных достаточно для прогноза" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:dataStatus ex:Sufficient }
+WHERE {
+  ?case a/rdfs:subClassOf* ex:ProcessCase ; ex:prefixLength ?n ; ex:inLog ?log .
+  ex:Norm_Quality ex:minPrefixLength ?min .
+  FILTER (?n >= ?min)
+  FILTER NOT EXISTS { ?log ex:qualityStatus ex:LowQuality }
+}""" .
+
+# ---------------- Сцена S3 «Граф и признаки» ----------------
+ex:R05 a ex:Rule ; rdfs:label "R05" ; ex:scope ex:S3 ; ex:priority 80 ; ex:source sn:MonitoringRegulation ;
+    ex:precondition "данных достаточно" ;
+    ex:conditionText "ЕСЛИ данных достаточно И журнал кейса объектно-центрированный (OCEL)" ;
+    ex:conclusionText "ТО граф «событие–объект» для кейса построен" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:graphReady true }
+WHERE {
+  ?case ex:dataStatus ex:Sufficient ; ex:inLog ?log .
+  ?log a/rdfs:subClassOf* ex:OCELLog .
+}""" .
+
+ex:R06 a ex:Rule ; rdfs:label "R06" ; ex:scope ex:S3 ; ex:priority 78 ; ex:source sn:ModelSelectionPolicy ;
+    ex:precondition "граф построен" ;
+    ex:conditionText "ЕСЛИ граф построен И число связанных объектов не меньше порога сложности" ;
+    ex:conclusionText "ТО объектная сложность кейса = высокая" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:objectComplexity ex:HighComplexity }
+WHERE {
+  ?case ex:graphReady true ; ex:nRelatedObjects ?k .
+  ex:Norm_ModelSelection ex:complexityThreshold ?t .
+  FILTER (?k >= ?t)
+}""" .
+
+ex:R07 a ex:Rule ; rdfs:label "R07" ; ex:scope ex:S3 ; ex:priority 78 ; ex:source sn:ModelSelectionPolicy ;
+    ex:precondition "граф построен" ;
+    ex:conditionText "ЕСЛИ граф построен И число связанных объектов меньше порога сложности" ;
+    ex:conclusionText "ТО объектная сложность кейса = обычная" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:objectComplexity ex:NormalComplexity }
+WHERE {
+  ?case ex:graphReady true ; ex:nRelatedObjects ?k .
+  ex:Norm_ModelSelection ex:complexityThreshold ?t .
+  FILTER (?k < ?t)
+}""" .
+
+# ---------------- Сцена S4 «Прогнозирование KPI» ----------------
+ex:R08 a ex:Rule ; rdfs:label "R08" ; ex:scope ex:S4 ; ex:priority 72 ; ex:source sn:ModelSelectionPolicy ;
+    ex:precondition "данных достаточно" ;
+    ex:conditionText "ЕСЛИ данных достаточно И модель XGBoost в эксплуатации и не требует переобучения" ;
+    ex:conclusionText "ТО модель XGBoost применима к кейсу" ;
+    ex:postAction "predict_forecast" ;
+    ex:core """INSERT { ?case ex:applicableModel ?m }
+WHERE {
+  ?case ex:dataStatus ex:Sufficient .
+  ?m a/rdfs:subClassOf* ex:XGBoostModel ; ex:status ex:Active .
+  FILTER NOT EXISTS { ?m ex:retrainingRequired true }
+}""" .
+
+ex:R09 a ex:Rule ; rdfs:label "R09" ; ex:scope ex:S4 ; ex:priority 70 ; ex:source sn:ModelSelectionPolicy ;
+    ex:precondition "граф построен" ;
+    ex:conditionText "ЕСЛИ граф кейса построен И модель GNN в эксплуатации и не требует переобучения" ;
+    ex:conclusionText "ТО модель GNN применима к кейсу" ;
+    ex:postAction "predict_forecast" ;
+    ex:core """INSERT { ?case ex:applicableModel ?m }
+WHERE {
+  ?case ex:graphReady true .
+  ?m a/rdfs:subClassOf* ex:GNNModel ; ex:status ex:Active .
+  FILTER NOT EXISTS { ?m ex:retrainingRequired true }
+}""" .
+
+ex:R10 a ex:Rule ; rdfs:label "R10" ; ex:scope ex:S4 ; ex:priority 65 ; ex:source sn:ModelSelectionPolicy ;
+    ex:precondition "получены прогнозы обеих моделей" ;
+    ex:conditionText "ЕСЛИ прогнозы XGBoost и GNN для кейса расходятся больше допустимой доли" ;
+    ex:conclusionText "ТО прогнозы конфликтуют; создать ситуацию «Расхождение прогнозов моделей»" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:hasConflict true .
+         _:s a ex:ModelConflict ; ex:situationOf ?case ; ex:relDiff ?rel ; rdfs:label ?lbl }
+WHERE {
+  ?fx ex:forCase ?case ; ex:byModel ?mx ; ex:predictedHours ?px .
+  ?mx a/rdfs:subClassOf* ex:XGBoostModel .
+  ?fg ex:forCase ?case ; ex:byModel ?mg ; ex:predictedHours ?pg .
+  ?mg a/rdfs:subClassOf* ex:GNNModel .
+  ?case ex:caseId ?cid .
+  ex:Norm_ModelSelection ex:maxRelDiff ?d .
+  BIND (ABS(?px - ?pg) / IF(?px > ?pg, ?px, ?pg) AS ?rel)
+  FILTER (?rel > ?d)
+  BIND (CONCAT("Расхождение прогнозов: ", ?cid) AS ?lbl)
+}""" .
+
+# ---------------- Сцена S4b «Согласование прогнозов» ----------------
+ex:R11 a ex:Rule ; rdfs:label "R11" ; ex:scope ex:S4b ; ex:priority 60 ; ex:source sn:ModelSelectionPolicy ;
+    ex:precondition "прогнозы конфликтуют" ;
+    ex:conditionText "ЕСЛИ прогнозы конфликтуют И объектная сложность кейса высокая" ;
+    ex:conclusionText "ТО принять прогноз GNN (лучше учитывает связи объектов)" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:selectedForecastHours ?p ; ex:selectedModel ?m }
+WHERE {
+  ?case ex:hasConflict true ; ex:objectComplexity ex:HighComplexity .
+  ?f ex:forCase ?case ; ex:byModel ?m ; ex:predictedHours ?p .
+  ?m a/rdfs:subClassOf* ex:GNNModel .
+}""" .
+
+ex:R12 a ex:Rule ; rdfs:label "R12" ; ex:scope ex:S4b ; ex:priority 60 ; ex:source sn:ModelSelectionPolicy ;
+    ex:precondition "прогнозы конфликтуют" ;
+    ex:conditionText "ЕСЛИ прогнозы конфликтуют И объектная сложность кейса обычная" ;
+    ex:conclusionText "ТО принять прогноз XGBoost (базовая модель устойчивее)" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:selectedForecastHours ?p ; ex:selectedModel ?m }
+WHERE {
+  ?case ex:hasConflict true ; ex:objectComplexity ex:NormalComplexity .
+  ?f ex:forCase ?case ; ex:byModel ?m ; ex:predictedHours ?p .
+  ?m a/rdfs:subClassOf* ex:XGBoostModel .
+}""" .
+
+ex:R13 a ex:Rule ; rdfs:label "R13" ; ex:scope ex:S4 ; ex:priority 55 ; ex:source sn:ModelSelectionPolicy ;
+    ex:precondition "получены прогнозы обеих моделей" ;
+    ex:conditionText "ЕСЛИ прогнозы обеих моделей получены И не конфликтуют" ;
+    ex:conclusionText "ТО принять прогноз GNN" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:selectedForecastHours ?p ; ex:selectedModel ?m }
+WHERE {
+  ?f ex:forCase ?case ; ex:byModel ?m ; ex:predictedHours ?p .
+  ?m a/rdfs:subClassOf* ex:GNNModel .
+  ?fx ex:forCase ?case ; ex:byModel ?mx .
+  ?mx a/rdfs:subClassOf* ex:XGBoostModel .
+  FILTER NOT EXISTS { ?case ex:hasConflict true }
+}""" .
+
+ex:R14 a ex:Rule ; rdfs:label "R14" ; ex:scope ex:S4 ; ex:priority 50 ; ex:source sn:ModelSelectionPolicy ;
+    ex:precondition "получен прогноз XGBoost" ;
+    ex:conditionText "ЕСЛИ есть прогноз XGBoost И прогноза GNN нет (GNN неприменима)" ;
+    ex:conclusionText "ТО принять прогноз XGBoost" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:selectedForecastHours ?p ; ex:selectedModel ?m }
+WHERE {
+  ?f ex:forCase ?case ; ex:byModel ?m ; ex:predictedHours ?p .
+  ?m a/rdfs:subClassOf* ex:XGBoostModel .
+  FILTER NOT EXISTS { ?g ex:forCase ?case ; ex:byModel ?mg . ?mg a/rdfs:subClassOf* ex:GNNModel . }
+}""" .
+
+# ---------------- Сцена S5 «Оценка риска нарушения SLA» ----------------
+ex:R15 a ex:Rule ; rdfs:label "R15" ; ex:scope ex:S5 ; ex:priority 45 ; ex:source sn:SLANorm ;
+    ex:precondition "прогноз принят" ;
+    ex:conditionText "ЕСЛИ прошедшее время + принятый прогноз остатка больше норматива SLA" ;
+    ex:conclusionText "ТО риск нарушения SLA = высокий" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:riskLevel ex:HighRisk ; ex:forecastTotalHours ?total }
+WHERE {
+  ?case ex:selectedForecastHours ?s ; ex:elapsedHours ?e ; ex:slaNorm ?n .
+  ?n ex:thresholdHours ?thr .
+  BIND (?e + ?s AS ?total)
+  FILTER (?total > ?thr)
+}""" .
+
+ex:R16 a ex:Rule ; rdfs:label "R16" ; ex:scope ex:S5 ; ex:priority 45 ; ex:source sn:SLANorm ;
+    ex:precondition "прогноз принят" ;
+    ex:conditionText "ЕСЛИ прогноз времени цикла выше порога внимания, но не больше норматива SLA" ;
+    ex:conclusionText "ТО риск = умеренный; создать ситуацию «Умеренный риск»" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:riskLevel ex:MediumRisk ; ex:forecastTotalHours ?total .
+         _:s a ex:SLARiskMedium ; ex:situationOf ?case ; rdfs:label ?lbl }
+WHERE {
+  ?case ex:selectedForecastHours ?s ; ex:elapsedHours ?e ; ex:slaNorm ?n ; ex:caseId ?cid .
+  ?n ex:thresholdHours ?thr ; ex:warnShare ?w .
+  BIND (?e + ?s AS ?total)
+  FILTER (?total > ?w * ?thr && ?total <= ?thr)
+  BIND (CONCAT("Умеренный риск SLA: ", ?cid) AS ?lbl)
+}""" .
+
+ex:R17 a ex:Rule ; rdfs:label "R17" ; ex:scope ex:S5 ; ex:priority 45 ; ex:source sn:SLANorm ;
+    ex:precondition "прогноз принят" ;
+    ex:conditionText "ЕСЛИ прогноз времени цикла не выше порога внимания" ;
+    ex:conclusionText "ТО риск нарушения SLA = низкий" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:riskLevel ex:LowRisk ; ex:forecastTotalHours ?total }
+WHERE {
+  ?case ex:selectedForecastHours ?s ; ex:elapsedHours ?e ; ex:slaNorm ?n .
+  ?n ex:thresholdHours ?thr ; ex:warnShare ?w .
+  BIND (?e + ?s AS ?total)
+  FILTER (?total <= ?w * ?thr)
+}""" .
+
+ex:R18 a ex:Rule ; rdfs:label "R18" ; ex:scope ex:SX ; ex:priority 45 ; ex:source sn:DataQualityReq ;
+    ex:precondition "данных недостаточно" ;
+    ex:conditionText "ЕСЛИ данных для прогноза недостаточно" ;
+    ex:conclusionText "ТО риск нарушения SLA не определён" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:riskLevel ex:UnknownRisk }
+WHERE { ?case ex:dataStatus ex:Insufficient . }""" .
+
+ex:R19 a ex:Rule ; rdfs:label "R19" ; ex:scope ex:S5 ; ex:priority 40 ; ex:source sn:EscalationRegulation ;
+    ex:precondition "риск оценён" ;
+    ex:conditionText "ЕСЛИ риск высокий И известна операция с наибольшим ожиданием" ;
+    ex:conclusionText "ТО операция — кандидат в узкие места; создать ситуацию «Высокий риск нарушения SLA»" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:bottleneckCandidate ?a .
+         _:s a ex:SLARiskHigh ; ex:situationOf ?case ; rdfs:label ?lbl }
+WHERE {
+  ?case ex:riskLevel ex:HighRisk ; ex:bottleneckActivity ?a ; ex:caseId ?cid .
+  BIND (CONCAT("Высокий риск SLA: ", ?cid) AS ?lbl)
+}""" .
+
+# ---------------- Сцена S6b «Эскалация владельцу процесса» ----------------
+ex:R20 a ex:Rule ; rdfs:label "R20" ; ex:scope ex:S6b ; ex:priority 30 ; ex:source sn:EscalationRegulation ;
+    ex:precondition "риск высокий" ;
+    ex:conditionText "ЕСЛИ риск высокий И уверенность принятого прогноза не ниже минимальной" ;
+    ex:conclusionText "ТО решение = эскалировать владельцу процесса; создать рекомендацию" ;
+    ex:postAction "notify_addressee" ;
+    ex:core """INSERT { ?case ex:decision ex:EscalateToOwner .
+         _:r a ex:Recommendation ; ex:forCase ?case ; ex:addressee ?who ; ex:action ?txt ;
+             ex:confidence ?conf ; rdfs:label ?lbl }
+WHERE {
+  ?case ex:riskLevel ex:HighRisk ; ex:selectedForecastHours ?p ; ex:selectedModel ?m ;
+        ex:forecastTotalHours ?total ; ex:slaNorm ?n ; ex:caseId ?cid .
+  ?n ex:thresholdHours ?thr .
+  ?m ex:mae ?mae .
+  ex:Norm_Escalation ex:minConfidence ?c .
+  BIND (?p / (?p + ?mae) AS ?conf)
+  FILTER (?conf >= ?c)
+  ?who a/rdfs:subClassOf* ex:ProcessOwnerRole .
+  OPTIONAL { ?case ex:bottleneckCandidate ?a }
+  BIND (CONCAT("Эскалировать кейс ", ?cid, " владельцу процесса: прогноз времени цикла ",
+               STR(ROUND(?total)), " ч превышает норматив ", STR(?thr),
+               " ч; перераспределить исполнителей на операции «", COALESCE(?a, "—"), "»") AS ?txt)
+  BIND (CONCAT("Рекомендация (эскалация): ", ?cid) AS ?lbl)
+}""" .
+
+ex:R21 a ex:Rule ; rdfs:label "R21" ; ex:scope ex:S6b ; ex:priority 25 ; ex:source sn:EscalationRegulation ;
+    ex:precondition "риск высокий" ;
+    ex:conditionText "ЕСЛИ риск высокий И прогнозы моделей конфликтуют" ;
+    ex:conclusionText "ТО решение = запросить заключение эксперта предметной области" ;
+    ex:postAction "notify_addressee" ;
+    ex:core """INSERT { ?case ex:decision ex:RequestExpertReview .
+         _:r a ex:Recommendation ; ex:forCase ?case ; ex:addressee ?who ; ex:action ?txt ; rdfs:label ?lbl }
+WHERE {
+  ?case ex:riskLevel ex:HighRisk ; ex:hasConflict true ; ex:caseId ?cid .
+  ?who a/rdfs:subClassOf* ex:DomainExpertRole .
+  BIND (CONCAT("Проверить кейс ", ?cid, ": прогнозы XGBoost и GNN расходятся, нужна экспертная оценка") AS ?txt)
+  BIND (CONCAT("Рекомендация (эксперт): ", ?cid) AS ?lbl)
+}""" .
+
+# ---------------- Сцена S6a «Усиленный контроль» ----------------
+ex:R22 a ex:Rule ; rdfs:label "R22" ; ex:scope ex:S6a ; ex:priority 30 ; ex:source sn:MonitoringRegulation ;
+    ex:precondition "риск умеренный" ;
+    ex:conditionText "ЕСЛИ риск нарушения SLA умеренный" ;
+    ex:conclusionText "ТО решение = усиленный контроль кейса бизнес-аналитиком" ;
+    ex:postAction "schedule_monitoring" ;
+    ex:core """INSERT { ?case ex:decision ex:EnhancedControl .
+         _:r a ex:Recommendation ; ex:forCase ?case ; ex:addressee ?who ; ex:action ?txt ; rdfs:label ?lbl }
+WHERE {
+  ?case ex:riskLevel ex:MediumRisk ; ex:forecastTotalHours ?total ; ex:caseId ?cid .
+  ?who a/rdfs:subClassOf* ex:BusinessAnalystRole .
+  BIND (CONCAT("Поставить кейс ", ?cid, " на усиленный контроль (проверка каждые 4 ч): прогноз ",
+               STR(ROUND(?total)), " ч выше порога внимания") AS ?txt)
+  BIND (CONCAT("Рекомендация (контроль): ", ?cid) AS ?lbl)
+}""" .
+
+# ---------------- Сцена S7 «Закрытие» и SX «Недостаточно данных» ----------------
+ex:R23 a ex:Rule ; rdfs:label "R23" ; ex:scope ex:S7 ; ex:priority 30 ; ex:source sn:MonitoringRegulation ;
+    ex:precondition "риск оценён" ;
+    ex:conditionText "ЕСЛИ риск нарушения SLA низкий" ;
+    ex:conclusionText "ТО решение = штатный мониторинг" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?case ex:decision ex:RegularMonitoring }
+WHERE { ?case ex:riskLevel ex:LowRisk . }""" .
+
+ex:R24 a ex:Rule ; rdfs:label "R24" ; ex:scope ex:SX ; ex:priority 30 ; ex:source sn:DataQualityReq ;
+    ex:precondition "риск не определён" ;
+    ex:conditionText "ЕСЛИ риск не определён из-за нехватки данных" ;
+    ex:conclusionText "ТО решение = дождаться событий и запросить данные у инженера данных" ;
+    ex:postAction "notify_addressee" ;
+    ex:core """INSERT { ?case ex:decision ex:RequestMoreData .
+         _:r a ex:Recommendation ; ex:forCase ?case ; ex:addressee ?who ; ex:action ?txt ; rdfs:label ?lbl }
+WHERE {
+  ?case ex:riskLevel ex:UnknownRisk ; ex:caseId ?cid ; ex:prefixLength ?n .
+  ex:Norm_Quality ex:minPrefixLength ?min .
+  ?who a/rdfs:subClassOf* ex:DataEngineerRole .
+  BIND (CONCAT("Кейс ", ?cid, ": в префиксе ", STR(?n), " событ., нужно не меньше ", STR(?min),
+               "; проверить выгрузку событий из ERP") AS ?txt)
+  BIND (CONCAT("Рекомендация (данные): ", ?cid) AS ?lbl)
+}""" .
+
+# ---------------- Фрейм «Прогнозная модель» (действуют всегда) ----------------
+ex:R25 a ex:Rule ; rdfs:label "R25" ; ex:scope ex:PredictiveModel ; ex:priority 95 ; ex:source sn:DriftThreshold ;
+    ex:precondition "известен индекс дрейфа модели" ;
+    ex:conditionText "ЕСЛИ индекс дрейфа модели больше порога" ;
+    ex:conclusionText "ТО модель требует переобучения; создать ситуацию «Дрейф данных модели»" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?m ex:retrainingRequired true .
+         _:s a ex:DataDriftSituation ; ex:situationOf ?m ; rdfs:label ?lbl }
+WHERE {
+  ?m a/rdfs:subClassOf* ex:PredictiveModel ; ex:driftScore ?d ; rdfs:label ?ml .
+  ex:Norm_Drift ex:driftThreshold ?t .
+  FILTER (?d > ?t)
+  BIND (CONCAT("Дрейф данных: ", STR(?ml)) AS ?lbl)
+}""" .
+
+ex:R26 a ex:Rule ; rdfs:label "R26" ; ex:scope ex:PredictiveModel ; ex:priority 30 ; ex:source sn:RetrainingRegulation ;
+    ex:precondition "модель требует переобучения" ;
+    ex:conditionText "ЕСЛИ модель требует переобучения И загрузка GPU-сервера ниже допустимой" ;
+    ex:conclusionText "ТО решение = переобучить модель на GPU-сервере; уведомить ML-инженера" ;
+    ex:postAction "notify_addressee" ;
+    ex:core """INSERT { ?m ex:decision ex:RetrainNow .
+         _:r a ex:Recommendation ; ex:forCase ?m ; ex:addressee ?who ; ex:action ?txt ; rdfs:label ?lbl }
+WHERE {
+  ?m ex:retrainingRequired true ; rdfs:label ?ml .
+  ?g a/rdfs:subClassOf* ex:GPUServer ; ex:load ?l ; rdfs:label ?gl .
+  ex:Norm_Drift ex:maxGpuLoad ?ml2 .
+  FILTER (?l < ?ml2)
+  ?who a/rdfs:subClassOf* ex:MLEngineerRole .
+  BIND (CONCAT("Переобучить модель «", STR(?ml), "» на ", STR(?gl), " (загрузка ", STR(?l), ")") AS ?txt)
+  BIND (CONCAT("Рекомендация (переобучение): ", STR(?ml)) AS ?lbl)
+}""" .
+
+ex:R27 a ex:Rule ; rdfs:label "R27" ; ex:scope ex:PredictiveModel ; ex:priority 30 ; ex:source sn:RetrainingRegulation ;
+    ex:precondition "модель требует переобучения" ;
+    ex:conditionText "ЕСЛИ модель требует переобучения И GPU-сервер перегружен" ;
+    ex:conclusionText "ТО решение = отложить переобучение" ;
+    ex:postAction "log_event" ;
+    ex:core """INSERT { ?m ex:decision ex:PostponeRetraining }
+WHERE {
+  ?m ex:retrainingRequired true .
+  ?g a/rdfs:subClassOf* ex:GPUServer ; ex:load ?l .
+  ex:Norm_Drift ex:maxGpuLoad ?ml2 .
+  FILTER (?l >= ?ml2)
+}""" .
+
+# ---------------- Фрейм «Журнал событий» ----------------
+ex:R28 a ex:Rule ; rdfs:label "R28" ; ex:scope ex:EventLog ; ex:priority 30 ; ex:source sn:DataQualityReq ;
+    ex:precondition "журнал требует очистки" ;
+    ex:conditionText "ЕСЛИ журнал требует очистки" ;
+    ex:conclusionText "ТО решение = очистить дубликаты; поручить инженеру данных" ;
+    ex:postAction "notify_addressee" ;
+    ex:core """INSERT { ?log ex:decision ex:CleanDuplicates .
+         _:r a ex:Recommendation ; ex:forCase ?log ; ex:addressee ?who ; ex:action ?txt ; rdfs:label ?lbl }
+WHERE {
+  ?log ex:needsCleaning true ; rdfs:label ?ll ; ex:duplicateRatio ?dr .
+  ?who a/rdfs:subClassOf* ex:DataEngineerRole .
+  BIND (CONCAT("Удалить дубликаты в журнале «", STR(?ll), "» (доля ", STR(?dr), ")") AS ?txt)
+  BIND (CONCAT("Рекомендация (очистка): ", STR(?ll)) AS ?lbl)
+}""" .
