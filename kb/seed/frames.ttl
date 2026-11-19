@@ -1,380 +1,1011 @@
-# =====================================================================
-#  Именованный граф <http://bmstu.ru/iu12/ocpa/graph/frames>
-#  Фреймовая модель — взгляд проектировщика. Фреймы-прототипы — это
-#  классы owl:Class, связь AKO — rdfs:subClassOf, слоты — свойства
-#  owl:DatatypeProperty / owl:ObjectProperty. Указатели наследования
-#  (U, S, R, O), способ получения значения и демоны записаны
-#  аннотациями свойств; значения по умолчанию — у классов (ex:slotDefault).
-#  ex:semNode — явная ссылка на вершину семантической сети.
-# =====================================================================
-@prefix ex:   <http://bmstu.ru/iu12/ocpa#> .
-@prefix sn:   <http://bmstu.ru/iu12/ocpa/sn#> .
-@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix ex: <http://bmstu.ru/iu12/ocpa#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix sn: <http://bmstu.ru/iu12/ocpa/sn#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-# ---------- служебные аннотации фреймовой модели ----------
-ex:inheritance  a owl:AnnotationProperty ; rdfs:label "Указатель наследования (U/S/R/O)"@ru .
-ex:valueSource  a owl:AnnotationProperty ; rdfs:label "Способ получения значения"@ru .
-ex:onAdded      a owl:AnnotationProperty ; rdfs:label "Демон IF-ADDED"@ru .
-ex:onRemoved    a owl:AnnotationProperty ; rdfs:label "Демон IF-REMOVED"@ru .
-ex:ifNeeded     a owl:AnnotationProperty ; rdfs:label "Демон IF-NEEDED (присоединённая процедура)"@ru .
-ex:semNode      a owl:AnnotationProperty ; rdfs:label "Вершина семантической сети"@ru .
-ex:slotDefault  a owl:AnnotationProperty ; rdfs:label "Значение слота по умолчанию"@ru .
-ex:frameKind    a owl:AnnotationProperty ; rdfs:label "Вид фрейма"@ru .
-ex:derived      a owl:AnnotationProperty ; rdfs:label "Слот заполняется выводом"@ru .
-ex:askable      a owl:AnnotationProperty ; rdfs:label "Значение можно запросить у пользователя"@ru .
-ex:slot         a owl:AnnotationProperty .
-ex:value        a owl:AnnotationProperty .
+ex:BusinessAnalystRole a owl:Class ;
+    rdfs:label "Бизнес-аналитик"@ru ;
+    ex:frameKind "прототип-роль" ;
+    ex:semNode sn:BusinessAnalyst ;
+    ex:slotDefault [ ex:slot ex:responsibility ;
+            ex:value "мониторинг SLA и поиск узких мест" ] ;
+    rdfs:subClassOf ex:Role .
 
-# =====================================================================
-#  Фреймы-прототипы объектов (иерархия AKO до 4 уровней)
-# =====================================================================
-ex:Entity a owl:Class ; rdfs:label "Сущность"@ru ; ex:frameKind "прототип-объект" ;
+ex:CleanDuplicates a ex:Status ;
+    rdfs:label "очистить дубликаты"@ru .
+
+ex:DataDriftSituation a owl:Class ;
+    rdfs:label "Дрейф данных модели"@ru ;
+    ex:frameKind "ситуация" ;
+    ex:semNode sn:DataDrift ;
+    ex:slotDefault [ ex:slot ex:description ;
+            ex:value "индекс стабильности признаков выше порога" ] ;
+    rdfs:subClassOf ex:Situation .
+
+ex:DataEngineerRole a owl:Class ;
+    rdfs:label "Инженер данных"@ru ;
+    ex:frameKind "прототип-роль" ;
+    ex:semNode sn:DataEngineer ;
+    ex:slotDefault [ ex:slot ex:responsibility ;
+            ex:value "выгрузка и качество журналов" ] ;
+    rdfs:subClassOf ex:Role .
+
+ex:DomainExpertRole a owl:Class ;
+    rdfs:label "Эксперт предметной области"@ru ;
+    ex:frameKind "прототип-роль" ;
+    ex:semNode sn:DomainExpert ;
+    ex:slotDefault [ ex:slot ex:responsibility ;
+            ex:value "проверка интерпретации прогнозов" ] ;
+    rdfs:subClassOf ex:Role .
+
+ex:EnhancedControl a ex:Status ;
+    rdfs:label "усиленный контроль"@ru .
+
+ex:EscalateToOwner a ex:Status ;
+    rdfs:label "эскалировать владельцу процесса"@ru .
+
+ex:ExternalSystem a owl:Class ;
+    rdfs:label "Внешняя система"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:ERPSystem ;
+    rdfs:subClassOf ex:Entity .
+
+ex:Facility a owl:Class ;
+    rdfs:label "Помещение"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:DataCenter ;
+    rdfs:subClassOf ex:Entity .
+
+ex:HighComplexity a ex:Status ;
+    rdfs:label "высокая"@ru .
+
+ex:HighRisk a ex:Status ;
+    rdfs:label "высокий"@ru .
+
+ex:Inactive a ex:ModelStatus ;
+    rdfs:label "выведена из эксплуатации"@ru .
+
+ex:Insufficient a ex:Status ;
+    rdfs:label "данных недостаточно"@ru .
+
+ex:InsufficientData a owl:Class ;
+    rdfs:label "Недостаточно данных для прогноза"@ru ;
+    ex:frameKind "ситуация" ;
+    ex:semNode sn:DataQualityReq ;
+    ex:slotDefault [ ex:slot ex:typical ;
+            ex:value false ],
+        [ ex:slot ex:description ;
+            ex:value "нетипичная: префикс короче минимального, прогноз невозможен" ] ;
+    rdfs:subClassOf ex:Situation .
+
+ex:LoanApplicationCase a owl:Class ;
+    rdfs:label "Кейс кредитной заявки"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:Application ;
+    ex:slotDefault [ ex:slot ex:slaNorm ;
+            ex:value ex:Norm_SLA_Loan ] ;
+    rdfs:subClassOf ex:ProcessCase .
+
+ex:LowQuality a ex:Status ;
+    rdfs:label "низкое качество"@ru .
+
+ex:LowRisk a ex:Status ;
+    rdfs:label "низкий"@ru .
+
+ex:MLEngineerRole a owl:Class ;
+    rdfs:label "ML-инженер"@ru ;
+    ex:frameKind "прототип-роль" ;
+    ex:semNode sn:MLEngineer ;
+    ex:slotDefault [ ex:slot ex:responsibility ;
+            ex:value "качество и переобучение моделей" ] ;
+    rdfs:subClassOf ex:Role .
+
+ex:MediumRisk a ex:Status ;
+    rdfs:label "умеренный"@ru .
+
+ex:NormalComplexity a ex:Status ;
+    rdfs:label "обычная"@ru .
+
+ex:OCELLog a owl:Class ;
+    rdfs:label "OCEL-журнал"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:OCELLog ;
+    ex:slotDefault [ ex:slot ex:format ;
+            ex:value "OCEL 2.0" ] ;
+    rdfs:subClassOf ex:EventLog .
+
+ex:ObuchayuschayaVyborka a owl:Class ;
+    rdfs:label "Обучающая выборка"@ru ;
+    ex:createdAt "2026-11-19T16:39:02"^^xsd:dateTime ;
+    ex:frameKind "прототип-объект" ;
+    ex:modifiedAt "2026-11-19T16:39:02"^^xsd:dateTime ;
+    ex:modifiedBy "И.С. Бронников" ;
+    ex:semNode sn:ObuchayuschayaVyborka ;
+    rdfs:subClassOf ex:InformationObject .
+
+ex:PostponeRetraining a ex:Status ;
+    rdfs:label "отложить переобучение"@ru .
+
+ex:ProcessOwnerRole a owl:Class ;
+    rdfs:label "Владелец процесса"@ru ;
+    ex:frameKind "прототип-роль" ;
+    ex:semNode sn:ProcessOwner ;
+    ex:slotDefault [ ex:slot ex:responsibility ;
+            ex:value "KPI процесса и решения по эскалациям" ],
+        [ ex:slot ex:notifyChannel ;
+            ex:value "электронная почта и мессенджер" ] ;
+    rdfs:subClassOf ex:Role .
+
+ex:Recommendation a owl:Class ;
+    rdfs:label "Рекомендация"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:Recommendation ;
+    rdfs:subClassOf ex:InformationObject .
+
+ex:RegularMonitoring a ex:Status ;
+    rdfs:label "штатный мониторинг"@ru .
+
+ex:RequestExpertReview a ex:Status ;
+    rdfs:label "запросить заключение эксперта"@ru .
+
+ex:RequestMoreData a ex:Status ;
+    rdfs:label "дождаться событий / запросить данные"@ru .
+
+ex:RetrainNow a ex:Status ;
+    rdfs:label "переобучить модель"@ru .
+
+ex:SLARiskHigh a owl:Class ;
+    rdfs:label "Высокий риск нарушения SLA"@ru ;
+    ex:frameKind "ситуация" ;
+    ex:semNode sn:SLAEscalation ;
+    ex:slotDefault [ ex:slot ex:description ;
+            ex:value "прогнозное время цикла больше норматива SLA" ] ;
+    rdfs:subClassOf ex:Situation .
+
+ex:SLARiskMedium a owl:Class ;
+    rdfs:label "Умеренный риск нарушения SLA"@ru ;
+    ex:frameKind "ситуация" ;
+    ex:semNode sn:SLAMonitoring ;
+    ex:slotDefault [ ex:slot ex:description ;
+            ex:value "прогноз между порогом внимания и нормативом" ] ;
+    rdfs:subClassOf ex:Situation .
+
+ex:Scenario a owl:Class ;
+    rdfs:label "Сценарий"@ru ;
+    ex:frameKind "сценарий" ;
+    ex:semNode sn:PredictiveMonitoring ;
+    rdfs:subClassOf ex:Entity .
+
+ex:ScenarioRun a owl:Class ;
+    rdfs:label "Экземпляр исполнения сценария"@ru ;
+    ex:frameKind "экземпляр сценария" ;
+    ex:semNode sn:SLAMonitoring ;
+    rdfs:subClassOf ex:Entity .
+
+ex:Scene a owl:Class ;
+    rdfs:label "Сцена"@ru ;
+    ex:frameKind "ситуация" ;
+    ex:semNode sn:SLAMonitoring ;
+    rdfs:subClassOf ex:Situation .
+
+ex:StorageNode a owl:Class ;
+    rdfs:label "Сетевое хранилище"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:NetworkStorage ;
+    rdfs:subClassOf ex:ComputeNode .
+
+ex:Sufficient a ex:Status ;
+    rdfs:label "данных достаточно"@ru .
+
+ex:UnknownRisk a ex:Status ;
+    rdfs:label "не определён"@ru .
+
+ex:XESLog a owl:Class ;
+    rdfs:label "XES-журнал"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:XESLog ;
+    ex:slotDefault [ ex:slot ex:format ;
+            ex:value "XES (IEEE 1849-2016)" ] ;
+    rdfs:subClassOf ex:EventLog .
+
+ex:XGBoostModel a owl:Class ;
+    rdfs:label "Модель XGBoost"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:XGBModel ;
+    ex:slotDefault [ ex:slot ex:deployedOn ;
+            ex:value ex:AppServer01 ] ;
+    rdfs:subClassOf ex:PredictiveModel .
+
+ex:action a owl:DatatypeProperty ;
+    rdfs:label "Что сделать"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:InformationObject ;
+    rdfs:range xsd:string .
+
+ex:addressee a owl:ObjectProperty ;
+    rdfs:label "Адресат"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:InformationObject ;
+    rdfs:range ex:Role .
+
+ex:applicableModel a owl:ObjectProperty ;
+    rdfs:label "Применимая модель"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range ex:PredictiveModel .
+
+ex:askable a owl:AnnotationProperty ;
+    rdfs:label "Значение можно запросить у пользователя"@ru .
+
+ex:avgWaitHours a owl:DatatypeProperty ;
+    rdfs:label "Среднее ожидание между событиями, ч"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "вычисляется демоном IF-ADDED (зависимый слот)" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:decimal .
+
+ex:basisRule a owl:ObjectProperty ;
+    rdfs:label "Основание (правило)"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "механизм вывода" ;
+    rdfs:domain ex:InformationObject ;
+    rdfs:range ex:Rule .
+
+ex:bottleneckActivity a owl:DatatypeProperty ;
+    rdfs:label "Операция с наибольшим ожиданием"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "из базы данных (анализ ожиданий)" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:string .
+
+ex:bottleneckCandidate a owl:DatatypeProperty ;
+    rdfs:label "Кандидат в узкие места"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:string .
+
+ex:byModel a owl:ObjectProperty ;
+    rdfs:label "Модель"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "присоединённая процедура «predict_forecast»" ;
+    rdfs:domain ex:Forecast ;
+    rdfs:range ex:PredictiveModel .
+
+ex:caseId a owl:DatatypeProperty ;
+    rdfs:label "Идентификатор кейса"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "из диалога с пользователем" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:string .
+
+ex:channel a owl:DatatypeProperty ;
+    rdfs:label "Канал доставки"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "постусловие правила «notify_addressee»" ;
+    rdfs:domain ex:Notification ;
+    rdfs:range xsd:string .
+
+ex:complexityThreshold a owl:DatatypeProperty ;
+    rdfs:label "Порог объектной сложности"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из регламента" ;
+    rdfs:domain ex:Norm ;
+    rdfs:range xsd:integer .
+
+ex:confidence a owl:DatatypeProperty ;
+    rdfs:label "Уверенность"@ru ;
+    ex:derived true ;
+    ex:ifNeeded "estimate_confidence" ;
+    ex:inheritance "U" ;
+    ex:valueSource "присоединённая процедура «estimate_confidence»" ;
+    rdfs:domain ex:InformationObject ;
+    rdfs:range xsd:decimal .
+
+ex:createdAt a owl:DatatypeProperty ;
+    rdfs:label "Дата создания"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "служебный: при создании" ;
+    rdfs:domain ex:Entity ;
+    rdfs:range xsd:dateTime .
+
+ex:dataStatus a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "Достаточность данных"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range ex:Status .
+
+ex:decision a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "Решение"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:Entity ;
+    rdfs:range ex:Status .
+
+ex:derived a owl:AnnotationProperty ;
+    rdfs:label "Слот заполняется выводом"@ru .
+
+ex:driftScore a owl:DatatypeProperty ;
+    rdfs:label "Индекс дрейфа (PSI)"@ru ;
+    ex:askable true ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из базы данных (монитор дрейфа)" ;
+    rdfs:domain ex:PredictiveModel ;
+    rdfs:range xsd:decimal .
+
+ex:driftThreshold a owl:DatatypeProperty ;
+    rdfs:label "Порог дрейфа (PSI)"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из регламента" ;
+    rdfs:domain ex:Norm ;
+    rdfs:range xsd:decimal .
+
+ex:duplicateRatio a owl:DatatypeProperty ;
+    rdfs:label "Доля дубликатов"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из базы данных (профиль качества)" ;
+    rdfs:domain ex:EventLog ;
+    rdfs:range xsd:decimal .
+
+ex:elapsedHours a owl:DatatypeProperty ;
+    rdfs:label "Прошло времени, ч"@ru ;
+    ex:askable true ;
+    ex:inheritance "U" ;
+    ex:onAdded "update_case_dependents" ;
+    ex:valueSource "из базы данных (поток событий)" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:decimal .
+
+ex:forCase a owl:ObjectProperty ;
+    rdfs:label "Для объекта"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:InformationObject ;
+    rdfs:range ex:Entity .
+
+ex:forecastTotalHours a owl:DatatypeProperty,
+        owl:FunctionalProperty ;
+    rdfs:label "Прогноз времени цикла, ч"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:decimal .
+
+ex:frameKind a owl:AnnotationProperty ;
+    rdfs:label "Вид фрейма"@ru .
+
+ex:graphDensity a owl:DatatypeProperty ;
+    rdfs:label "Плотность графа событие–объект"@ru ;
+    ex:ifNeeded "compute_density" ;
+    ex:inheritance "U" ;
+    ex:valueSource "присоединённая процедура «compute_density»" ;
+    rdfs:domain ex:EventLog ;
+    rdfs:range xsd:decimal .
+
+ex:graphReady a owl:DatatypeProperty ;
+    rdfs:label "Граф событие–объект построен"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:boolean .
+
+ex:hasConflict a owl:DatatypeProperty ;
+    rdfs:label "Прогнозы расходятся"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:boolean .
+
+ex:hostedOn a owl:ObjectProperty ;
+    rdfs:label "Размещён на"@ru ;
+    ex:inheritance "U" ;
+    ex:onRemoved "find_dangling_refs" ;
+    ex:valueSource "из диалога с пользователем" ;
+    rdfs:domain ex:SystemModule ;
+    rdfs:range ex:ComputeNode .
+
+ex:ifNeeded a owl:AnnotationProperty ;
+    rdfs:label "Демон IF-NEEDED (присоединённая процедура)"@ru .
+
+ex:inLog a owl:ObjectProperty ;
+    rdfs:label "Журнал"@ru ;
+    ex:inheritance "U" ;
+    ex:onRemoved "find_dangling_refs" ;
+    ex:valueSource "из диалога с пользователем" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range ex:EventLog .
+
+ex:inheritance a owl:AnnotationProperty ;
+    rdfs:label "Указатель наследования (U/S/R/O)"@ru .
+
+ex:logEntry a owl:DatatypeProperty ;
+    rdfs:label "Запись журнала"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "постусловие правила «log_event»" ;
+    rdfs:domain ex:Entity ;
+    rdfs:range xsd:string .
+
+ex:mae a owl:DatatypeProperty ;
+    rdfs:label "MAE, ч"@ru ;
+    ex:inheritance "R" ;
+    ex:valueSource "из базы данных (результаты обучения)" ;
+    rdfs:domain ex:PredictiveModel ;
+    rdfs:range xsd:decimal .
+
+ex:maxDuplicateRatio a owl:DatatypeProperty ;
+    rdfs:label "Допустимая доля дубликатов"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из регламента" ;
+    rdfs:domain ex:Norm ;
+    rdfs:range xsd:decimal .
+
+ex:maxGpuLoad a owl:DatatypeProperty ;
+    rdfs:label "Допустимая загрузка GPU"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из регламента" ;
+    rdfs:domain ex:Norm ;
+    rdfs:range xsd:decimal .
+
+ex:maxMissingRatio a owl:DatatypeProperty ;
+    rdfs:label "Допустимая доля пропусков"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из регламента" ;
+    rdfs:domain ex:Norm ;
+    rdfs:range xsd:decimal .
+
+ex:maxRelDiff a owl:DatatypeProperty ;
+    rdfs:label "Допустимое расхождение прогнозов"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из регламента" ;
+    rdfs:domain ex:Norm ;
+    rdfs:range xsd:decimal .
+
+ex:minConfidence a owl:DatatypeProperty ;
+    rdfs:label "Минимальная уверенность прогноза"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из регламента" ;
+    rdfs:domain ex:Norm ;
+    rdfs:range xsd:decimal .
+
+ex:minPrefixLength a owl:DatatypeProperty ;
+    rdfs:label "Минимальная длина префикса"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из регламента" ;
+    rdfs:domain ex:Norm ;
+    rdfs:range xsd:integer .
+
+ex:missingRatio a owl:DatatypeProperty ;
+    rdfs:label "Доля пропусков"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из базы данных (профиль качества)" ;
+    rdfs:domain ex:EventLog ;
+    rdfs:range xsd:decimal .
+
+ex:modifiedAt a owl:DatatypeProperty ;
+    rdfs:label "Дата изменения"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "служебный: при изменении" ;
+    rdfs:domain ex:Entity ;
+    rdfs:range xsd:dateTime .
+
+ex:modifiedBy a owl:DatatypeProperty ;
+    rdfs:label "Автор последнего изменения"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "служебный: при изменении" ;
+    rdfs:domain ex:Entity ;
+    rdfs:range xsd:string .
+
+ex:nE2O a owl:DatatypeProperty ;
+    rdfs:label "Число связей событие–объект"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "из базы данных (MongoDB)" ;
+    rdfs:domain ex:EventLog ;
+    rdfs:range xsd:integer .
+
+ex:nEvents a owl:DatatypeProperty ;
+    rdfs:label "Число событий"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "из базы данных (MongoDB)" ;
+    rdfs:domain ex:EventLog ;
+    rdfs:range xsd:integer .
+
+ex:nObjectTypes a owl:DatatypeProperty ;
+    rdfs:label "Число типов объектов"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "из базы данных (связи E2O)" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:integer .
+
+ex:nObjects a owl:DatatypeProperty ;
+    rdfs:label "Число объектов"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "из базы данных (MongoDB)" ;
+    rdfs:domain ex:EventLog ;
+    rdfs:range xsd:integer .
+
+ex:nRelatedObjects a owl:DatatypeProperty ;
+    rdfs:label "Число связанных объектов"@ru ;
+    ex:askable true ;
+    ex:inheritance "U" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из базы данных (связи E2O)" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:integer .
+
+ex:needsCleaning a owl:DatatypeProperty ;
+    rdfs:label "Требуется очистка"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:EventLog ;
+    rdfs:range xsd:boolean .
+
+ex:nextCheckHours a owl:DatatypeProperty ;
+    rdfs:label "Интервал контроля, ч"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "постусловие правила" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:decimal .
+
+ex:notified a owl:DatatypeProperty ;
+    rdfs:label "Уведомление отправлено"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "постусловие правила «notify_addressee»" ;
+    rdfs:domain ex:InformationObject ;
+    rdfs:range xsd:boolean .
+
+ex:objectComplexity a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "Объектная сложность"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range ex:Status .
+
+ex:onAdded a owl:AnnotationProperty ;
+    rdfs:label "Демон IF-ADDED"@ru .
+
+ex:onRemoved a owl:AnnotationProperty ;
+    rdfs:label "Демон IF-REMOVED"@ru .
+
+ex:personName a owl:DatatypeProperty ;
+    rdfs:label "ФИО"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "из диалога с пользователем" ;
+    rdfs:domain ex:Role ;
+    rdfs:range xsd:string .
+
+ex:predictedHours a owl:DatatypeProperty ;
+    rdfs:label "Прогноз остатка, ч"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "присоединённая процедура «predict_forecast»" ;
+    rdfs:domain ex:Forecast ;
+    rdfs:range xsd:decimal .
+
+ex:prefixLength a owl:DatatypeProperty ;
+    rdfs:label "Длина префикса, событий"@ru ;
+    ex:askable true ;
+    ex:inheritance "U" ;
+    ex:onAdded "update_case_dependents" ;
+    ex:valueSource "из базы данных (поток событий)" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:integer .
+
+ex:qualityStatus a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "Качество журнала"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:EventLog ;
+    rdfs:range ex:Status .
+
+ex:relDiff a owl:DatatypeProperty ;
+    rdfs:label "Относительное расхождение"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ModelConflict ;
+    rdfs:range xsd:decimal .
+
+ex:retrainingRequired a owl:DatatypeProperty ;
+    rdfs:label "Требуется переобучение"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:PredictiveModel ;
+    rdfs:range xsd:boolean .
+
+ex:riskLevel a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "Риск нарушения SLA"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range ex:Status .
+
+ex:rmse a owl:DatatypeProperty ;
+    rdfs:label "RMSE, ч"@ru ;
+    ex:inheritance "R" ;
+    ex:valueSource "из базы данных (результаты обучения)" ;
+    rdfs:domain ex:PredictiveModel ;
+    rdfs:range xsd:decimal .
+
+ex:selectedForecastHours a owl:DatatypeProperty,
+        owl:FunctionalProperty ;
+    rdfs:label "Принятый прогноз остатка, ч"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range xsd:decimal .
+
+ex:selectedModel a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "Выбранная модель"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range ex:PredictiveModel .
+
+ex:semNode a owl:AnnotationProperty ;
+    rdfs:label "Вершина семантической сети"@ru .
+
+ex:situationOf a owl:ObjectProperty ;
+    rdfs:label "Ситуация относится к"@ru ;
+    ex:derived true ;
+    ex:inheritance "U" ;
+    ex:valueSource "продукционное правило" ;
+    rdfs:domain ex:Situation ;
+    rdfs:range ex:Entity .
+
+ex:slot a owl:AnnotationProperty .
+
+ex:slotDefault a owl:AnnotationProperty ;
+    rdfs:label "Значение слота по умолчанию"@ru .
+
+ex:thresholdHours a owl:DatatypeProperty ;
+    rdfs:label "Норматив, ч"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из регламента" ;
+    rdfs:domain ex:Norm ;
+    rdfs:range xsd:decimal .
+
+ex:trainedOn a owl:ObjectProperty ;
+    rdfs:label "Обучена на журнале"@ru ;
+    ex:inheritance "U" ;
+    ex:onRemoved "find_dangling_refs" ;
+    ex:valueSource "из базы данных" ;
+    rdfs:domain ex:PredictiveModel ;
+    rdfs:range ex:EventLog .
+
+ex:value a owl:AnnotationProperty .
+
+ex:valueSource a owl:AnnotationProperty ;
+    rdfs:label "Способ получения значения"@ru .
+
+ex:version a owl:DatatypeProperty ;
+    rdfs:label "Версия"@ru ;
+    ex:inheritance "U" ;
+    ex:valueSource "из базы данных" ;
+    rdfs:domain ex:Entity ;
+    rdfs:range xsd:string .
+
+ex:warnShare a owl:DatatypeProperty ;
+    rdfs:label "Порог внимания (доля норматива)"@ru ;
+    ex:inheritance "R" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из регламента" ;
+    rdfs:domain ex:Norm ;
+    rdfs:range xsd:decimal .
+
+ex:Active a ex:ModelStatus ;
+    rdfs:label "в эксплуатации"@ru .
+
+ex:GNNModel a owl:Class ;
+    rdfs:label "Графовая нейросеть"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:GNNModel ;
+    ex:slotDefault [ ex:slot ex:inputRepresentation ;
+            ex:value "граф «событие–объект»" ],
+        [ ex:slot ex:biasFactor ;
+            ex:value 0.95 ],
+        [ ex:slot ex:objectSensitivity ;
+            ex:value 0.15 ],
+        [ ex:slot ex:deployedOn ;
+            ex:value ex:GPU01 ] ;
+    rdfs:subClassOf ex:PredictiveModel .
+
+ex:GPUServer a owl:Class ;
+    rdfs:label "GPU-сервер"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:GPUServer ;
+    ex:slotDefault [ ex:slot ex:gpuCount ;
+            ex:value 2 ] ;
+    rdfs:subClassOf ex:Server .
+
+ex:HeteroGNNModel a owl:Class ;
+    rdfs:label "Гетерогенная GNN"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:HeteroGNN ;
+    ex:slotDefault [ ex:slot ex:nodeTypes ;
+            ex:value "событие, заявка, предложение, ресурс" ] ;
+    rdfs:subClassOf ex:GNNModel .
+
+ex:ModelConflict a owl:Class ;
+    rdfs:label "Расхождение прогнозов моделей"@ru ;
+    ex:frameKind "ситуация" ;
+    ex:semNode sn:ModelSelectionPolicy ;
+    ex:slotDefault [ ex:slot ex:description ;
+            ex:value "прогнозы XGBoost и GNN различаются больше допустимого" ] ;
+    rdfs:subClassOf ex:Situation .
+
+ex:Notification a owl:Class ;
+    rdfs:label "Уведомление"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:Recommendation ;
+    rdfs:subClassOf ex:InformationObject .
+
+ex:Rule a owl:Class ;
+    rdfs:label "Продукционное правило"@ru ;
+    ex:frameKind "правило" ;
+    ex:semNode sn:DSSModule ;
+    rdfs:subClassOf ex:Entity .
+
+ex:Server a owl:Class ;
+    rdfs:label "Сервер"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:Server ;
+    ex:slotDefault [ ex:slot ex:location ;
+            ex:value "Серверная ЦОД-1" ] ;
+    rdfs:subClassOf ex:ComputeNode .
+
+ex:SystemModule a owl:Class ;
+    rdfs:label "Модуль системы"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:OCPAModule ;
+    rdfs:subClassOf ex:Entity .
+
+ex:gpuCount a owl:DatatypeProperty ;
+    rdfs:label "Число GPU"@ru ;
+    ex:inheritance "O" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:GPUServer ;
+    rdfs:range xsd:integer .
+
+ex:load a owl:DatatypeProperty ;
+    rdfs:label "Загрузка (доля)"@ru ;
+    ex:inheritance "U" ;
+    ex:onAdded "run_inference" ;
+    ex:valueSource "из системы мониторинга" ;
+    rdfs:domain ex:ComputeNode ;
+    rdfs:range xsd:decimal .
+
+ex:location a owl:DatatypeProperty ;
+    rdfs:label "Расположение"@ru ;
+    ex:inheritance "S" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:ComputeNode ;
+    rdfs:range xsd:string .
+
+ex:medianTraceLength a owl:DatatypeProperty ;
+    rdfs:label "Медианная длина трассы"@ru ;
+    ex:inheritance "O" ;
+    ex:valueSource "наследование через AKO / из базы" ;
+    rdfs:domain ex:EventLog ;
+    rdfs:range xsd:integer .
+
+ex:nodeTypes a owl:DatatypeProperty ;
+    rdfs:label "Типы вершин графа"@ru ;
+    ex:inheritance "S" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:HeteroGNNModel ;
+    rdfs:range xsd:string .
+
+ex:slaNorm a owl:ObjectProperty ;
+    rdfs:label "Норматив SLA"@ru ;
+    ex:inheritance "O" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:ProcessCase ;
+    rdfs:range ex:Norm .
+
+ex:status a owl:ObjectProperty ;
+    rdfs:label "Статус"@ru ;
+    ex:inheritance "O" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:PredictiveModel ;
+    rdfs:range ex:ModelStatus .
+
+ex:storedIn a owl:ObjectProperty ;
+    rdfs:label "Хранится на"@ru ;
+    ex:inheritance "O" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:InformationObject ;
+    rdfs:range ex:ComputeNode .
+
+ex:Forecast a owl:Class ;
+    rdfs:label "Прогноз KPI"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:Forecast ;
+    rdfs:subClassOf ex:InformationObject .
+
+ex:biasFactor a owl:DatatypeProperty ;
+    rdfs:label "Масштабный коэффициент"@ru ;
+    ex:inheritance "O" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:PredictiveModel ;
+    rdfs:range xsd:decimal .
+
+ex:deployedOn a owl:ObjectProperty ;
+    rdfs:label "Развёрнута на"@ru ;
+    ex:inheritance "O" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:PredictiveModel ;
+    rdfs:range ex:ComputeNode .
+
+ex:format a owl:DatatypeProperty ;
+    rdfs:label "Формат"@ru ;
+    ex:inheritance "S" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:EventLog ;
+    rdfs:range xsd:string .
+
+ex:inputRepresentation a owl:DatatypeProperty ;
+    rdfs:label "Представление входа"@ru ;
+    ex:inheritance "O" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:PredictiveModel ;
+    rdfs:range xsd:string .
+
+ex:notifyChannel a owl:DatatypeProperty ;
+    rdfs:label "Канал уведомлений"@ru ;
+    ex:inheritance "O" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:Role ;
+    rdfs:range xsd:string .
+
+ex:objectSensitivity a owl:DatatypeProperty ;
+    rdfs:label "Чувствительность к объектам"@ru ;
+    ex:inheritance "O" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:PredictiveModel ;
+    rdfs:range xsd:decimal .
+
+ex:typical a owl:DatatypeProperty ;
+    rdfs:label "Типовая ситуация"@ru ;
+    ex:inheritance "S" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:Situation ;
+    rdfs:range xsd:boolean .
+
+ex:ModelStatus a owl:Class ;
+    rdfs:label "Статус модели"@ru .
+
+ex:description a owl:DatatypeProperty ;
+    rdfs:label "Описание"@ru ;
+    ex:inheritance "S" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:Situation ;
+    rdfs:range xsd:string .
+
+ex:responsibility a owl:DatatypeProperty ;
+    rdfs:label "Зона ответственности"@ru ;
+    ex:inheritance "S" ;
+    ex:valueSource "наследование через AKO" ;
+    rdfs:domain ex:Role ;
+    rdfs:range xsd:string .
+
+ex:ComputeNode a owl:Class ;
+    rdfs:label "Вычислительный узел"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:ComputeNode ;
+    ex:slotDefault [ ex:slot ex:load ;
+            ex:value 0.0 ] ;
+    rdfs:subClassOf ex:Entity .
+
+ex:Role a owl:Class ;
+    rdfs:label "Роль"@ru ;
+    ex:frameKind "прототип-роль" ;
+    ex:semNode sn:Participant ;
+    ex:slotDefault [ ex:slot ex:notifyChannel ;
+            ex:value "электронная почта" ] ;
+    rdfs:subClassOf ex:Entity .
+
+ex:Situation a owl:Class ;
+    rdfs:label "Ситуация"@ru ;
+    ex:frameKind "ситуация" ;
+    ex:semNode sn:SLAMonitoring ;
+    ex:slotDefault [ ex:slot ex:typical ;
+            ex:value true ] ;
+    rdfs:subClassOf ex:Entity .
+
+ex:Norm a owl:Class ;
+    rdfs:label "Норматив"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:MonitoringRegulation ;
+    rdfs:subClassOf ex:Entity .
+
+ex:EventLog a owl:Class ;
+    rdfs:label "Журнал событий"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:EventLog ;
+    ex:slotDefault [ ex:slot ex:medianTraceLength ;
+            ex:value 20 ] ;
+    rdfs:subClassOf ex:InformationObject .
+
+ex:InformationObject a owl:Class ;
+    rdfs:label "Информационный объект"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:InformationObject ;
+    ex:slotDefault [ ex:slot ex:storedIn ;
+            ex:value ex:DBServer01 ] ;
+    rdfs:subClassOf ex:Entity .
+
+ex:PredictiveModel a owl:Class ;
+    rdfs:label "Прогнозная модель"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:PredictiveModel ;
+    ex:slotDefault [ ex:slot ex:inputRepresentation ;
+            ex:value "вектор признаков префикса" ],
+        [ ex:slot ex:biasFactor ;
+            ex:value 1.0 ],
+        [ ex:slot ex:objectSensitivity ;
+            ex:value 0.0 ],
+        [ ex:slot ex:status ;
+            ex:value ex:Active ] ;
+    rdfs:subClassOf ex:InformationObject .
+
+ex:Entity a owl:Class ;
+    rdfs:label "Сущность"@ru ;
+    ex:frameKind "прототип-объект" ;
     rdfs:comment "Корневой фрейм: несёт служебные слоты (дата создания, автор изменения)" .
 
-ex:InformationObject a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Информационный объект"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:InformationObject ;
-    ex:slotDefault [ ex:slot ex:storedIn ; ex:value ex:DBServer01 ] .
+ex:ProcessCase a owl:Class ;
+    rdfs:label "Экземпляр процесса"@ru ;
+    ex:frameKind "прототип-объект" ;
+    ex:semNode sn:ProcessCase ;
+    rdfs:subClassOf ex:InformationObject .
 
-ex:EventLog a owl:Class ; rdfs:subClassOf ex:InformationObject ; rdfs:label "Журнал событий"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:EventLog ;
-    ex:slotDefault [ ex:slot ex:medianTraceLength ; ex:value 20 ] .
-ex:XESLog a owl:Class ; rdfs:subClassOf ex:EventLog ; rdfs:label "XES-журнал"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:XESLog ;
-    ex:slotDefault [ ex:slot ex:format ; ex:value "XES (IEEE 1849-2016)" ] .
-ex:OCELLog a owl:Class ; rdfs:subClassOf ex:EventLog ; rdfs:label "OCEL-журнал"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:OCELLog ;
-    ex:slotDefault [ ex:slot ex:format ; ex:value "OCEL 2.0" ] .
+ex:Status a owl:Class ;
+    rdfs:label "Значение-состояние"@ru .
 
-ex:ProcessCase a owl:Class ; rdfs:subClassOf ex:InformationObject ; rdfs:label "Экземпляр процесса"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:ProcessCase .
-ex:LoanApplicationCase a owl:Class ; rdfs:subClassOf ex:ProcessCase ; rdfs:label "Кейс кредитной заявки"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:Application ;
-    ex:slotDefault [ ex:slot ex:slaNorm ; ex:value ex:Norm_SLA_Loan ] .
-
-ex:Forecast a owl:Class ; rdfs:subClassOf ex:InformationObject ; rdfs:label "Прогноз KPI"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:Forecast .
-ex:Recommendation a owl:Class ; rdfs:subClassOf ex:InformationObject ; rdfs:label "Рекомендация"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:Recommendation .
-ex:Notification a owl:Class ; rdfs:subClassOf ex:InformationObject ; rdfs:label "Уведомление"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:Recommendation .
-
-ex:PredictiveModel a owl:Class ; rdfs:subClassOf ex:InformationObject ; rdfs:label "Прогнозная модель"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:PredictiveModel ;
-    ex:slotDefault [ ex:slot ex:inputRepresentation ; ex:value "вектор признаков префикса" ] ,
-                   [ ex:slot ex:biasFactor ; ex:value 1.0 ] ,
-                   [ ex:slot ex:objectSensitivity ; ex:value 0.0 ] ,
-                   [ ex:slot ex:status ; ex:value ex:Active ] .
-ex:XGBoostModel a owl:Class ; rdfs:subClassOf ex:PredictiveModel ; rdfs:label "Модель XGBoost"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:XGBModel ;
-    ex:slotDefault [ ex:slot ex:deployedOn ; ex:value ex:AppServer01 ] .
-ex:GNNModel a owl:Class ; rdfs:subClassOf ex:PredictiveModel ; rdfs:label "Графовая нейросеть"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:GNNModel ;
-    ex:slotDefault [ ex:slot ex:inputRepresentation ; ex:value "граф «событие–объект»" ] ,
-                   [ ex:slot ex:biasFactor ; ex:value 0.95 ] ,
-                   [ ex:slot ex:objectSensitivity ; ex:value 0.15 ] ,
-                   [ ex:slot ex:deployedOn ; ex:value ex:GPU01 ] .
-ex:HeteroGNNModel a owl:Class ; rdfs:subClassOf ex:GNNModel ; rdfs:label "Гетерогенная GNN"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:HeteroGNN ;
-    ex:slotDefault [ ex:slot ex:nodeTypes ; ex:value "событие, заявка, предложение, ресурс" ] .
-
-ex:Norm a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Норматив"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:MonitoringRegulation .
-
-ex:ComputeNode a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Вычислительный узел"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:ComputeNode ;
-    ex:slotDefault [ ex:slot ex:load ; ex:value 0.0 ] .
-ex:Server a owl:Class ; rdfs:subClassOf ex:ComputeNode ; rdfs:label "Сервер"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:Server ;
-    ex:slotDefault [ ex:slot ex:location ; ex:value "Серверная ЦОД-1" ] .
-ex:GPUServer a owl:Class ; rdfs:subClassOf ex:Server ; rdfs:label "GPU-сервер"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:GPUServer ;
-    ex:slotDefault [ ex:slot ex:gpuCount ; ex:value 2 ] .
-
-ex:SystemModule a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Модуль системы"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:OCPAModule .
-ex:ExternalSystem a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Внешняя система"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:ERPSystem .
-ex:StorageNode a owl:Class ; rdfs:subClassOf ex:ComputeNode ; rdfs:label "Сетевое хранилище"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:NetworkStorage .
-ex:Facility a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Помещение"@ru ;
-    ex:frameKind "прототип-объект" ; ex:semNode sn:DataCenter .
-
-# =====================================================================
-#  Фреймы-прототипы ролей
-# =====================================================================
-ex:Role a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Роль"@ru ;
-    ex:frameKind "прототип-роль" ; ex:semNode sn:Participant ;
-    ex:slotDefault [ ex:slot ex:notifyChannel ; ex:value "электронная почта" ] .
-ex:BusinessAnalystRole a owl:Class ; rdfs:subClassOf ex:Role ; rdfs:label "Бизнес-аналитик"@ru ;
-    ex:frameKind "прототип-роль" ; ex:semNode sn:BusinessAnalyst ;
-    ex:slotDefault [ ex:slot ex:responsibility ; ex:value "мониторинг SLA и поиск узких мест" ] .
-ex:MLEngineerRole a owl:Class ; rdfs:subClassOf ex:Role ; rdfs:label "ML-инженер"@ru ;
-    ex:frameKind "прототип-роль" ; ex:semNode sn:MLEngineer ;
-    ex:slotDefault [ ex:slot ex:responsibility ; ex:value "качество и переобучение моделей" ] .
-ex:ProcessOwnerRole a owl:Class ; rdfs:subClassOf ex:Role ; rdfs:label "Владелец процесса"@ru ;
-    ex:frameKind "прототип-роль" ; ex:semNode sn:ProcessOwner ;
-    ex:slotDefault [ ex:slot ex:responsibility ; ex:value "KPI процесса и решения по эскалациям" ] ,
-                   [ ex:slot ex:notifyChannel ; ex:value "электронная почта и мессенджер" ] .
-ex:DomainExpertRole a owl:Class ; rdfs:subClassOf ex:Role ; rdfs:label "Эксперт предметной области"@ru ;
-    ex:frameKind "прототип-роль" ; ex:semNode sn:DomainExpert ;
-    ex:slotDefault [ ex:slot ex:responsibility ; ex:value "проверка интерпретации прогнозов" ] .
-ex:DataEngineerRole a owl:Class ; rdfs:subClassOf ex:Role ; rdfs:label "Инженер данных"@ru ;
-    ex:frameKind "прототип-роль" ; ex:semNode sn:DataEngineer ;
-    ex:slotDefault [ ex:slot ex:responsibility ; ex:value "выгрузка и качество журналов" ] .
-
-# =====================================================================
-#  Фреймы-ситуации (типовые состояния, в которых принимается решение)
-# =====================================================================
-ex:Situation a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Ситуация"@ru ;
-    ex:frameKind "ситуация" ; ex:semNode sn:SLAMonitoring ;
-    ex:slotDefault [ ex:slot ex:typical ; ex:value true ] .
-ex:SLARiskHigh a owl:Class ; rdfs:subClassOf ex:Situation ; rdfs:label "Высокий риск нарушения SLA"@ru ;
-    ex:frameKind "ситуация" ; ex:semNode sn:SLAEscalation ;
-    ex:slotDefault [ ex:slot ex:description ; ex:value "прогнозное время цикла больше норматива SLA" ] .
-ex:SLARiskMedium a owl:Class ; rdfs:subClassOf ex:Situation ; rdfs:label "Умеренный риск нарушения SLA"@ru ;
-    ex:frameKind "ситуация" ; ex:semNode sn:SLAMonitoring ;
-    ex:slotDefault [ ex:slot ex:description ; ex:value "прогноз между порогом внимания и нормативом" ] .
-ex:ModelConflict a owl:Class ; rdfs:subClassOf ex:Situation ; rdfs:label "Расхождение прогнозов моделей"@ru ;
-    ex:frameKind "ситуация" ; ex:semNode sn:ModelSelectionPolicy ;
-    ex:slotDefault [ ex:slot ex:description ; ex:value "прогнозы XGBoost и GNN различаются больше допустимого" ] .
-ex:DataDriftSituation a owl:Class ; rdfs:subClassOf ex:Situation ; rdfs:label "Дрейф данных модели"@ru ;
-    ex:frameKind "ситуация" ; ex:semNode sn:DataDrift ;
-    ex:slotDefault [ ex:slot ex:description ; ex:value "индекс стабильности признаков выше порога" ] .
-ex:InsufficientData a owl:Class ; rdfs:subClassOf ex:Situation ; rdfs:label "Недостаточно данных для прогноза"@ru ;
-    ex:frameKind "ситуация" ; ex:semNode sn:DataQualityReq ;
-    ex:slotDefault [ ex:slot ex:typical ; ex:value false ] ,
-                   [ ex:slot ex:description ; ex:value "нетипичная: префикс короче минимального, прогноз невозможен" ] .
-
-# =====================================================================
-#  Фреймы для сценариев и правил (их экземпляры лежат в своих графах)
-# =====================================================================
-ex:Scenario    a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Сценарий"@ru ; ex:frameKind "сценарий" ;
-    ex:semNode sn:PredictiveMonitoring .
-ex:Scene       a owl:Class ; rdfs:subClassOf ex:Situation ; rdfs:label "Сцена"@ru ; ex:frameKind "ситуация" ;
-    ex:semNode sn:SLAMonitoring .
-ex:ScenarioRun a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Экземпляр исполнения сценария"@ru ;
-    ex:frameKind "экземпляр сценария" ; ex:semNode sn:SLAMonitoring .
-ex:Rule        a owl:Class ; rdfs:subClassOf ex:Entity ; rdfs:label "Продукционное правило"@ru ;
-    ex:frameKind "правило" ; ex:semNode sn:DSSModule .
-
-# =====================================================================
-#  Слоты (свойства). Для каждого: домен (какому фрейму принадлежит),
-#  тип (rdfs:range), указатель наследования, способ получения, демоны.
-# =====================================================================
-# --- служебные слоты (ведутся у каждого фрейма) ---
-ex:createdAt  a owl:DatatypeProperty ; rdfs:label "Дата создания"@ru ; rdfs:domain ex:Entity ;
-    rdfs:range xsd:dateTime ; ex:inheritance "U" ; ex:valueSource "служебный: при создании" .
-ex:modifiedAt a owl:DatatypeProperty ; rdfs:label "Дата изменения"@ru ; rdfs:domain ex:Entity ;
-    rdfs:range xsd:dateTime ; ex:inheritance "U" ; ex:valueSource "служебный: при изменении" .
-ex:modifiedBy a owl:DatatypeProperty ; rdfs:label "Автор последнего изменения"@ru ; rdfs:domain ex:Entity ;
-    rdfs:range xsd:string ; ex:inheritance "U" ; ex:valueSource "служебный: при изменении" .
-
-# --- Информационный объект ---
-ex:storedIn a owl:ObjectProperty ; rdfs:label "Хранится на"@ru ; rdfs:domain ex:InformationObject ;
-    rdfs:range ex:ComputeNode ; ex:inheritance "O" ; ex:valueSource "наследование через AKO" .
-
-# --- Журнал событий ---
-ex:format a owl:DatatypeProperty ; rdfs:label "Формат"@ru ; rdfs:domain ex:EventLog ;
-    rdfs:range xsd:string ; ex:inheritance "S" ; ex:valueSource "наследование через AKO" .
-ex:nEvents a owl:DatatypeProperty ; rdfs:label "Число событий"@ru ; rdfs:domain ex:EventLog ;
-    rdfs:range xsd:integer ; ex:inheritance "U" ; ex:valueSource "из базы данных (MongoDB)" .
-ex:nObjects a owl:DatatypeProperty ; rdfs:label "Число объектов"@ru ; rdfs:domain ex:EventLog ;
-    rdfs:range xsd:integer ; ex:inheritance "U" ; ex:valueSource "из базы данных (MongoDB)" .
-ex:nE2O a owl:DatatypeProperty ; rdfs:label "Число связей событие–объект"@ru ; rdfs:domain ex:EventLog ;
-    rdfs:range xsd:integer ; ex:inheritance "U" ; ex:valueSource "из базы данных (MongoDB)" .
-ex:missingRatio a owl:DatatypeProperty ; rdfs:label "Доля пропусков"@ru ; rdfs:domain ex:EventLog ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из базы данных (профиль качества)" ;
-    ex:onAdded "run_inference" .
-ex:duplicateRatio a owl:DatatypeProperty ; rdfs:label "Доля дубликатов"@ru ; rdfs:domain ex:EventLog ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из базы данных (профиль качества)" ;
-    ex:onAdded "run_inference" .
-ex:medianTraceLength a owl:DatatypeProperty ; rdfs:label "Медианная длина трассы"@ru ; rdfs:domain ex:EventLog ;
-    rdfs:range xsd:integer ; ex:inheritance "O" ; ex:valueSource "наследование через AKO / из базы" .
-ex:graphDensity a owl:DatatypeProperty ; rdfs:label "Плотность графа событие–объект"@ru ; rdfs:domain ex:EventLog ;
-    rdfs:range xsd:decimal ; ex:inheritance "U" ; ex:valueSource "присоединённая процедура «compute_density»" ;
-    ex:ifNeeded "compute_density" .
-
-# --- Экземпляр процесса ---
-ex:caseId a owl:DatatypeProperty ; rdfs:label "Идентификатор кейса"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range xsd:string ; ex:inheritance "U" ; ex:valueSource "из диалога с пользователем" .
-ex:inLog a owl:ObjectProperty ; rdfs:label "Журнал"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range ex:EventLog ; ex:inheritance "U" ; ex:valueSource "из диалога с пользователем" ;
-    ex:onRemoved "find_dangling_refs" .
-ex:prefixLength a owl:DatatypeProperty ; rdfs:label "Длина префикса, событий"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range xsd:integer ; ex:inheritance "U" ; ex:valueSource "из базы данных (поток событий)" ;
-    ex:onAdded "update_case_dependents" ; ex:askable true .
-ex:elapsedHours a owl:DatatypeProperty ; rdfs:label "Прошло времени, ч"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range xsd:decimal ; ex:inheritance "U" ; ex:valueSource "из базы данных (поток событий)" ;
-    ex:onAdded "update_case_dependents" ; ex:askable true .
-ex:avgWaitHours a owl:DatatypeProperty ; rdfs:label "Среднее ожидание между событиями, ч"@ru ;
-    rdfs:domain ex:ProcessCase ; rdfs:range xsd:decimal ; ex:inheritance "U" ;
-    ex:valueSource "вычисляется демоном IF-ADDED (зависимый слот)" .
-ex:nRelatedObjects a owl:DatatypeProperty ; rdfs:label "Число связанных объектов"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range xsd:integer ; ex:inheritance "U" ; ex:valueSource "из базы данных (связи E2O)" ;
-    ex:onAdded "run_inference" ; ex:askable true .
-ex:nObjectTypes a owl:DatatypeProperty ; rdfs:label "Число типов объектов"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range xsd:integer ; ex:inheritance "U" ; ex:valueSource "из базы данных (связи E2O)" .
-ex:bottleneckActivity a owl:DatatypeProperty ; rdfs:label "Операция с наибольшим ожиданием"@ru ;
-    rdfs:domain ex:ProcessCase ; rdfs:range xsd:string ; ex:inheritance "U" ;
-    ex:valueSource "из базы данных (анализ ожиданий)" .
-ex:slaNorm a owl:ObjectProperty ; rdfs:label "Норматив SLA"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range ex:Norm ; ex:inheritance "O" ; ex:valueSource "наследование через AKO" .
-
-# --- Прогнозная модель ---
-ex:mae a owl:DatatypeProperty ; rdfs:label "MAE, ч"@ru ; rdfs:domain ex:PredictiveModel ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из базы данных (результаты обучения)" .
-ex:rmse a owl:DatatypeProperty ; rdfs:label "RMSE, ч"@ru ; rdfs:domain ex:PredictiveModel ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из базы данных (результаты обучения)" .
-ex:driftScore a owl:DatatypeProperty ; rdfs:label "Индекс дрейфа (PSI)"@ru ; rdfs:domain ex:PredictiveModel ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из базы данных (монитор дрейфа)" ;
-    ex:onAdded "run_inference" ; ex:askable true .
-ex:status a owl:ObjectProperty ; rdfs:label "Статус"@ru ; rdfs:domain ex:PredictiveModel ;
-    rdfs:range ex:ModelStatus ; ex:inheritance "O" ; ex:valueSource "наследование через AKO" .
-ex:trainedOn a owl:ObjectProperty ; rdfs:label "Обучена на журнале"@ru ; rdfs:domain ex:PredictiveModel ;
-    rdfs:range ex:EventLog ; ex:inheritance "U" ; ex:valueSource "из базы данных" ;
-    ex:onRemoved "find_dangling_refs" .
-ex:deployedOn a owl:ObjectProperty ; rdfs:label "Развёрнута на"@ru ; rdfs:domain ex:PredictiveModel ;
-    rdfs:range ex:ComputeNode ; ex:inheritance "O" ; ex:valueSource "наследование через AKO" .
-ex:inputRepresentation a owl:DatatypeProperty ; rdfs:label "Представление входа"@ru ;
-    rdfs:domain ex:PredictiveModel ; rdfs:range xsd:string ; ex:inheritance "O" ; ex:valueSource "наследование через AKO" .
-ex:biasFactor a owl:DatatypeProperty ; rdfs:label "Масштабный коэффициент"@ru ; rdfs:domain ex:PredictiveModel ;
-    rdfs:range xsd:decimal ; ex:inheritance "O" ; ex:valueSource "наследование через AKO" .
-ex:objectSensitivity a owl:DatatypeProperty ; rdfs:label "Чувствительность к объектам"@ru ;
-    rdfs:domain ex:PredictiveModel ; rdfs:range xsd:decimal ; ex:inheritance "O" ; ex:valueSource "наследование через AKO" .
-ex:nodeTypes a owl:DatatypeProperty ; rdfs:label "Типы вершин графа"@ru ; rdfs:domain ex:HeteroGNNModel ;
-    rdfs:range xsd:string ; ex:inheritance "S" ; ex:valueSource "наследование через AKO" .
-ex:version a owl:DatatypeProperty ; rdfs:label "Версия"@ru ; rdfs:domain ex:Entity ;
-    rdfs:range xsd:string ; ex:inheritance "U" ; ex:valueSource "из базы данных" .
-
-ex:ModelStatus a owl:Class ; rdfs:label "Статус модели"@ru .
-ex:Active   a ex:ModelStatus ; rdfs:label "в эксплуатации"@ru .
-ex:Inactive a ex:ModelStatus ; rdfs:label "выведена из эксплуатации"@ru .
-
-# --- Норматив ---
-ex:thresholdHours a owl:DatatypeProperty ; rdfs:label "Норматив, ч"@ru ; rdfs:domain ex:Norm ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из регламента" ; ex:onAdded "run_inference" .
-ex:warnShare a owl:DatatypeProperty ; rdfs:label "Порог внимания (доля норматива)"@ru ; rdfs:domain ex:Norm ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из регламента" ; ex:onAdded "run_inference" .
-ex:maxMissingRatio a owl:DatatypeProperty ; rdfs:label "Допустимая доля пропусков"@ru ; rdfs:domain ex:Norm ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из регламента" ; ex:onAdded "run_inference" .
-ex:maxDuplicateRatio a owl:DatatypeProperty ; rdfs:label "Допустимая доля дубликатов"@ru ; rdfs:domain ex:Norm ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из регламента" ; ex:onAdded "run_inference" .
-ex:minPrefixLength a owl:DatatypeProperty ; rdfs:label "Минимальная длина префикса"@ru ; rdfs:domain ex:Norm ;
-    rdfs:range xsd:integer ; ex:inheritance "R" ; ex:valueSource "из регламента" ; ex:onAdded "run_inference" .
-ex:maxRelDiff a owl:DatatypeProperty ; rdfs:label "Допустимое расхождение прогнозов"@ru ; rdfs:domain ex:Norm ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из регламента" ; ex:onAdded "run_inference" .
-ex:complexityThreshold a owl:DatatypeProperty ; rdfs:label "Порог объектной сложности"@ru ; rdfs:domain ex:Norm ;
-    rdfs:range xsd:integer ; ex:inheritance "R" ; ex:valueSource "из регламента" ; ex:onAdded "run_inference" .
-ex:minConfidence a owl:DatatypeProperty ; rdfs:label "Минимальная уверенность прогноза"@ru ; rdfs:domain ex:Norm ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из регламента" ; ex:onAdded "run_inference" .
-ex:driftThreshold a owl:DatatypeProperty ; rdfs:label "Порог дрейфа (PSI)"@ru ; rdfs:domain ex:Norm ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из регламента" ; ex:onAdded "run_inference" .
-ex:maxGpuLoad a owl:DatatypeProperty ; rdfs:label "Допустимая загрузка GPU"@ru ; rdfs:domain ex:Norm ;
-    rdfs:range xsd:decimal ; ex:inheritance "R" ; ex:valueSource "из регламента" ; ex:onAdded "run_inference" .
-
-# --- Вычислительный узел, модуль ---
-ex:load a owl:DatatypeProperty ; rdfs:label "Загрузка (доля)"@ru ; rdfs:domain ex:ComputeNode ;
-    rdfs:range xsd:decimal ; ex:inheritance "U" ; ex:valueSource "из системы мониторинга" ; ex:onAdded "run_inference" .
-ex:location a owl:DatatypeProperty ; rdfs:label "Расположение"@ru ; rdfs:domain ex:ComputeNode ;
-    rdfs:range xsd:string ; ex:inheritance "S" ; ex:valueSource "наследование через AKO" .
-ex:gpuCount a owl:DatatypeProperty ; rdfs:label "Число GPU"@ru ; rdfs:domain ex:GPUServer ;
-    rdfs:range xsd:integer ; ex:inheritance "O" ; ex:valueSource "наследование через AKO" .
-ex:hostedOn a owl:ObjectProperty ; rdfs:label "Размещён на"@ru ; rdfs:domain ex:SystemModule ;
-    rdfs:range ex:ComputeNode ; ex:inheritance "U" ; ex:valueSource "из диалога с пользователем" ;
-    ex:onRemoved "find_dangling_refs" .
-
-# --- Роль ---
-ex:personName a owl:DatatypeProperty ; rdfs:label "ФИО"@ru ; rdfs:domain ex:Role ;
-    rdfs:range xsd:string ; ex:inheritance "U" ; ex:valueSource "из диалога с пользователем" .
-ex:notifyChannel a owl:DatatypeProperty ; rdfs:label "Канал уведомлений"@ru ; rdfs:domain ex:Role ;
-    rdfs:range xsd:string ; ex:inheritance "O" ; ex:valueSource "наследование через AKO" .
-ex:responsibility a owl:DatatypeProperty ; rdfs:label "Зона ответственности"@ru ; rdfs:domain ex:Role ;
-    rdfs:range xsd:string ; ex:inheritance "S" ; ex:valueSource "наследование через AKO" .
-
-# --- Ситуация ---
-ex:situationOf a owl:ObjectProperty ; rdfs:label "Ситуация относится к"@ru ; rdfs:domain ex:Situation ;
-    rdfs:range ex:Entity ; ex:inheritance "U" ; ex:valueSource "продукционное правило" ; ex:derived true .
-ex:typical a owl:DatatypeProperty ; rdfs:label "Типовая ситуация"@ru ; rdfs:domain ex:Situation ;
-    rdfs:range xsd:boolean ; ex:inheritance "S" ; ex:valueSource "наследование через AKO" .
-ex:description a owl:DatatypeProperty ; rdfs:label "Описание"@ru ; rdfs:domain ex:Situation ;
-    rdfs:range xsd:string ; ex:inheritance "S" ; ex:valueSource "наследование через AKO" .
-ex:relDiff a owl:DatatypeProperty ; rdfs:label "Относительное расхождение"@ru ; rdfs:domain ex:ModelConflict ;
-    rdfs:range xsd:decimal ; ex:inheritance "U" ; ex:valueSource "продукционное правило" ; ex:derived true .
-
-# --- Слоты, которые заполняет механизм вывода (рабочая память) ---
-ex:qualityStatus a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:label "Качество журнала"@ru ;
-    rdfs:domain ex:EventLog ; rdfs:range ex:Status ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:needsCleaning a owl:DatatypeProperty ; rdfs:label "Требуется очистка"@ru ; rdfs:domain ex:EventLog ;
-    rdfs:range xsd:boolean ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:dataStatus a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:label "Достаточность данных"@ru ;
-    rdfs:domain ex:ProcessCase ; rdfs:range ex:Status ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:graphReady a owl:DatatypeProperty ; rdfs:label "Граф событие–объект построен"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range xsd:boolean ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:objectComplexity a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:label "Объектная сложность"@ru ;
-    rdfs:domain ex:ProcessCase ; rdfs:range ex:Status ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:applicableModel a owl:ObjectProperty ; rdfs:label "Применимая модель"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range ex:PredictiveModel ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:hasConflict a owl:DatatypeProperty ; rdfs:label "Прогнозы расходятся"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range xsd:boolean ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:selectedForecastHours a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:label "Принятый прогноз остатка, ч"@ru ;
-    rdfs:domain ex:ProcessCase ; rdfs:range xsd:decimal ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:selectedModel a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:label "Выбранная модель"@ru ;
-    rdfs:domain ex:ProcessCase ; rdfs:range ex:PredictiveModel ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:forecastTotalHours a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:label "Прогноз времени цикла, ч"@ru ;
-    rdfs:domain ex:ProcessCase ; rdfs:range xsd:decimal ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:riskLevel a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:label "Риск нарушения SLA"@ru ;
-    rdfs:domain ex:ProcessCase ; rdfs:range ex:Status ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:bottleneckCandidate a owl:DatatypeProperty ; rdfs:label "Кандидат в узкие места"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range xsd:string ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:decision a owl:ObjectProperty, owl:FunctionalProperty ; rdfs:label "Решение"@ru ;
-    rdfs:domain ex:Entity ; rdfs:range ex:Status ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:retrainingRequired a owl:DatatypeProperty ; rdfs:label "Требуется переобучение"@ru ; rdfs:domain ex:PredictiveModel ;
-    rdfs:range xsd:boolean ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "продукционное правило" .
-ex:nextCheckHours a owl:DatatypeProperty ; rdfs:label "Интервал контроля, ч"@ru ; rdfs:domain ex:ProcessCase ;
-    rdfs:range xsd:decimal ; ex:derived true ; ex:inheritance "U" ; ex:valueSource "постусловие правила" .
-
-# --- Прогноз, рекомендация, уведомление ---
-ex:forCase a owl:ObjectProperty ; rdfs:label "Для объекта"@ru ; rdfs:domain ex:InformationObject ;
-    rdfs:range ex:Entity ; ex:inheritance "U" ; ex:valueSource "продукционное правило" ; ex:derived true .
-ex:byModel a owl:ObjectProperty ; rdfs:label "Модель"@ru ; rdfs:domain ex:Forecast ;
-    rdfs:range ex:PredictiveModel ; ex:inheritance "U" ; ex:valueSource "присоединённая процедура «predict_forecast»" ; ex:derived true .
-ex:predictedHours a owl:DatatypeProperty ; rdfs:label "Прогноз остатка, ч"@ru ; rdfs:domain ex:Forecast ;
-    rdfs:range xsd:decimal ; ex:inheritance "U" ; ex:valueSource "присоединённая процедура «predict_forecast»" ;
-    ex:derived true ; ex:onAdded "run_inference" .
-ex:confidence a owl:DatatypeProperty ; rdfs:label "Уверенность"@ru ; rdfs:domain ex:InformationObject ;
-    rdfs:range xsd:decimal ; ex:inheritance "U" ; ex:valueSource "присоединённая процедура «estimate_confidence»" ;
-    ex:ifNeeded "estimate_confidence" ; ex:derived true .
-ex:addressee a owl:ObjectProperty ; rdfs:label "Адресат"@ru ; rdfs:domain ex:InformationObject ;
-    rdfs:range ex:Role ; ex:inheritance "U" ; ex:valueSource "продукционное правило" ; ex:derived true .
-ex:action a owl:DatatypeProperty ; rdfs:label "Что сделать"@ru ; rdfs:domain ex:InformationObject ;
-    rdfs:range xsd:string ; ex:inheritance "U" ; ex:valueSource "продукционное правило" ; ex:derived true .
-ex:basisRule a owl:ObjectProperty ; rdfs:label "Основание (правило)"@ru ; rdfs:domain ex:InformationObject ;
-    rdfs:range ex:Rule ; ex:inheritance "U" ; ex:valueSource "механизм вывода" ; ex:derived true .
-
-ex:logEntry a owl:DatatypeProperty ; rdfs:label "Запись журнала"@ru ; rdfs:domain ex:Entity ;
-    rdfs:range xsd:string ; ex:inheritance "U" ; ex:valueSource "постусловие правила «log_event»" ; ex:derived true .
-ex:notified a owl:DatatypeProperty ; rdfs:label "Уведомление отправлено"@ru ; rdfs:domain ex:InformationObject ;
-    rdfs:range xsd:boolean ; ex:inheritance "U" ; ex:valueSource "постусловие правила «notify_addressee»" ; ex:derived true .
-ex:channel a owl:DatatypeProperty ; rdfs:label "Канал доставки"@ru ; rdfs:domain ex:Notification ;
-    rdfs:range xsd:string ; ex:inheritance "U" ; ex:valueSource "постусловие правила «notify_addressee»" ; ex:derived true .
-
-ex:Status a owl:Class ; rdfs:label "Значение-состояние"@ru .
-ex:LowQuality        a ex:Status ; rdfs:label "низкое качество"@ru .
-ex:Sufficient        a ex:Status ; rdfs:label "данных достаточно"@ru .
-ex:Insufficient      a ex:Status ; rdfs:label "данных недостаточно"@ru .
-ex:HighComplexity    a ex:Status ; rdfs:label "высокая"@ru .
-ex:NormalComplexity  a ex:Status ; rdfs:label "обычная"@ru .
-ex:HighRisk          a ex:Status ; rdfs:label "высокий"@ru .
-ex:MediumRisk        a ex:Status ; rdfs:label "умеренный"@ru .
-ex:LowRisk           a ex:Status ; rdfs:label "низкий"@ru .
-ex:UnknownRisk       a ex:Status ; rdfs:label "не определён"@ru .
-ex:EscalateToOwner   a ex:Status ; rdfs:label "эскалировать владельцу процесса"@ru .
-ex:RequestExpertReview a ex:Status ; rdfs:label "запросить заключение эксперта"@ru .
-ex:EnhancedControl   a ex:Status ; rdfs:label "усиленный контроль"@ru .
-ex:RegularMonitoring a ex:Status ; rdfs:label "штатный мониторинг"@ru .
-ex:RequestMoreData   a ex:Status ; rdfs:label "дождаться событий / запросить данные"@ru .
-ex:RetrainNow        a ex:Status ; rdfs:label "переобучить модель"@ru .
-ex:PostponeRetraining a ex:Status ; rdfs:label "отложить переобучение"@ru .
-ex:CleanDuplicates   a ex:Status ; rdfs:label "очистить дубликаты"@ru .
