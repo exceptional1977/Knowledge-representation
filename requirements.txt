@@ -3,3 +3,6 @@ owlrl>=6.0
 pyshacl>=0.25
 flask>=3.0
 networkx>=3.0
+numpy>=1.26
+scipy>=1.11
+requests>=2.31
